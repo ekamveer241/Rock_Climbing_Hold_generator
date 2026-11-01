@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Climbing Hold & Route Setter Studio</title>
+  <!-- Three.js & OrbitControls from CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <style>
+    :root {
+      --bg-dark: #11161f;
+      --panel-bg: #1a202c;
+      --card-bg: #222a36;
+      --border-color: #2d3748;
+      --text-main: #edf2f7;
+      --text-muted: #a0aec0;
+      --accent: #3182ce;
+      --accent-hover: #2b6cb0;
+      --green: #38a169;
+      --red: #e53e3e;
+      --yellow: #ecc94b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-main);
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+    /* Left Sidebar */
+    #sidebar {
+      width: 360px;
+      min-width: 320px;
+      background: var(--panel-bg);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      z-index: 10;
+    }
+    /* Tabs Navigation */
+    .nav-tabs {
+      display: flex;
+      background: #141a24;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 12px 6px;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      transition: all 0.2s;
+    }
+    .tab-btn:hover { color: var(--text-main); }
+    .tab-btn.active {
+      color: #ffffff;
+      background: var(--panel-bg);
+      border-bottom: 2px solid var(--accent);
+    }
+    /* Tab Contents */
+    .tab-content {
+      padding: 14px;
+      overflow-y: auto;
+      flex: 1;
+      display: none;
+    }
+    .tab-content.active { display: block; }
+    
+    .section-title {
+      font-size: 10px;
+      font-weight: 800;
+      color: #ffffff;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      margin: 12px 0 6px 0;
+    }
+    .section-title:first-child { margin-top: 0; }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 10px;
+      margin-bottom: 12px;
+    }
+    .control-row {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .control-row:last-child { margin-bottom: 0; }
+    
+    input[type="text"], input[type="number"], select {
+      flex: 1;
+      background: #151b26;
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-size: 13px;
+      outline: none;
+    }
+    input[type="range"] {
+      flex: 1;
+      accent-color: var(--accent);
+    }
+    .btn {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 7px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn:hover { background: #2d3748; }
+    .btn-primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #ffffff;
+      font-weight: 700;
+      width: 100%;
+    }
+    .btn-primary:hover { background: var(--accent-hover); }
+
+    .grid-radios {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+    .radio-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .radio-label input { accent-color: var(--accent); }
+
+    .telemetry-box {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 11px;
+      line-height: 1.5;
+      color: #edf2f7;
+      white-space: pre-wrap;
+    }
+
+    /* Right Viewport */
+    #viewport-container {
+      flex: 1;
+      position: relative;
+      height: 100%;
+    }
+    #threejs-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    /* Floating Blender Toolbar */
+    #view-overlay {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      background: rgba(26, 32, 44, 0.85);
+      border: 1px solid var(--border-color);
+      padding: 6px;
+      border-radius: 6px;
+      backdrop-filter: blur(4px);
+    }
+    .overlay-btn {
+      background: #2d3748;
+      border: none;
+      color: var(--text-main);
+      padding: 4px 8px;
+      border-radius: 3px;
+      font-size: 10px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .overlay-btn:hover { background: var(--accent); }
+
+    /* 2D Grip Minimap */
+    #grip-minimap {
+      position: absolute;
+      bottom: 16px;
+      right: 16px;
+      width: 180px;
+      background: rgba(21, 27, 38, 0.9);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 8px;
+      backdrop-filter: blur(4px);
+    }
+    .minimap-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 9px;
+      font-weight: 800;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+    .minimap-legend {
+      height: 6px;
+      border-radius: 2px;
+      background: linear-gradient(to right, #194bb9, #f5d71e, #eb2323);
+      margin-top: 6px;
+    }
+    #minimap-canvas {
+      width: 100%;
+      height: 100px;
+      background: #0e131b;
+      border-radius: 4px;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Left Sidebar Controls -->
+  <div id="sidebar">
+    <div class="nav-tabs">
+      <button class="tab-btn active" onclick="switchTab('design')">Hold Design</button>
+      <button class="tab-btn" onclick="switchTab('analysis')">Biomechanics</button>
+      <button class="tab-btn" onclick="switchTab('route')">Route Setter</button>
+    </div>
+
+    <!-- TAB 1: HOLD DESIGN -->
+    <div id="tab-design" class="tab-content active">
+      <div class="section-title">Seed & Variation</div>
+      <div class="card">
+        <div class="control-row">
+          <input type="text" id="hold-seed" value="1234">
+          <button class="btn" onclick="randomizeSeed()">Random</button>
+        </div>
+      </div>
+
+      <div class="section-title">Hold Classification</div>
+      <div class="card">
+        <div class="grid-radios">
+          <label class="radio-label"><input type="radio" name="htype" value="Jug" checked onchange="updateHold()"> Jug</label>
+          <label class="radio-label"><input type="radio" name="htype" value="Crimp" onchange="updateHold()"> Crimp</label>
+          <label class="radio-label"><input type="radio" name="htype" value="Sloper" onchange="updateHold()"> Sloper</label>
+          <label class="radio-label"><input type="radio" name="htype" value="Pinch" onchange="updateHold()"> Pinch</label>
+          <label class="radio-label"><input type="radio" name="htype" value="Pocket" onchange="updateHold()"> Pocket</label>
+          <label class="radio-label"><input type="radio" name="htype" value="Edge" onchange="updateHold()"> Edge</label>
+        </div>
+      </div>
+
+      <div class="section-title">Side Profile (Y-Z Cross-Section)</div>
+      <div class="card" style="padding: 6px;">
+        <canvas id="profile-canvas" width="310" height="100"></canvas>
+      </div>
+
+      <div class="section-title">Difficulty Level</div>
+      <div class="card">
+        <div class="control-row">
+          <label class="radio-label"><input type="radio" name="diff" value="Easy" onchange="updateHold()"> Easy</label>
+          <label class="radio-label"><input type="radio" name="diff" value="Medium" checked onchange="updateHold()"> Medium</label>
+          <label class="radio-label"><input type="radio" name="diff" value="Hard" onchange="updateHold()"> Hard</label>
+        </div>
+      </div>
+
+      <div class="section-title">Mesh Resolution (<span id="res-val">1.0</span>x)</div>
+      <div class="card">
+        <div class="control-row">
+          <input type="range" id="quality-slider" min="0.5" max="2.5" step="0.25" value="1.0" oninput="document.getElementById('res-val').innerText = this.value; updateHold();">
+        </div>
+      </div>
+
+      <div class="section-title">3D Print Export</div>
+      <button class="btn btn-primary" onclick="exportSTL()">Download Binary STL (.stl)</button>
+    </div>
+
+    <!-- TAB 2: BIOMECHANICAL ANALYSIS -->
+    <div id="tab-analysis" class="tab-content">
+      <div class="section-title">Shading Mode</div>
+      <div class="card">
+        <div class="control-row">
+          <label class="radio-label"><input type="radio" name="shading" value="heatmap" checked onchange="updateShading()"> Grip Heatmap</label>
+          <label class="radio-label"><input type="radio" name="shading" value="normals" onchange="updateShading()"> Normals</label>
+          <label class="radio-label"><input type="radio" name="shading" value="solid" onchange="updateShading()"> Resin</label>
+        </div>
+      </div>
+
+      <div class="section-title">Hold Difficulty Rating</div>
+      <div class="card">
+        <div style="font-size: 16px; font-weight: 800; color: #ffffff;" id="hdi-score">HDI: -- / 10.0</div>
+        <div style="font-size: 12px; color: var(--accent); font-weight: 700; margin-top: 2px;" id="hdi-grade">Grade: --</div>
+      </div>
+
+      <div class="section-title">Quantitative Metrics</div>
+      <div class="card telemetry-box" id="metrics-telemetry">Analyzing mesh...</div>
+    </div>
+
+    <!-- TAB 3: ROUTE SETTER -->
+    <div id="tab-route" class="tab-content">
+      <div class="section-title">Target Difficulty (V-Scale)</div>
+      <div class="card">
+        <div style="font-size: 14px; font-weight: 800; color: var(--yellow);" id="route-grade-label">Grade: V3 (Intermediate)</div>
+        <div class="control-row" style="margin-top: 6px;">
+          <input type="range" id="v-grade-slider" min="0" max="12" value="3" oninput="onGradeSliderChange(this.value)">
+        </div>
+      </div>
+
+      <div class="section-title">Wall Angle & Terrain</div>
+      <div class="card">
+        <div class="control-row">
+          <label class="radio-label"><input type="radio" name="wall-angle" value="0" onchange="generateRoute()"> 0°</label>
+          <label class="radio-label"><input type="radio" name="wall-angle" value="15" checked onchange="generateRoute()"> 15°</label>
+          <label class="radio-label"><input type="radio" name="wall-angle" value="30" onchange="generateRoute()"> 30°</label>
+          <label class="radio-label"><input type="radio" name="wall-angle" value="45" onchange="generateRoute()"> 45°</label>
+        </div>
+      </div>
+
+      <div class="section-title">Boulder Sequence (2.4m x 3.6m Wall)</div>
+      <div class="card" style="padding: 6px;">
+        <canvas id="wall-canvas" width="310" height="150" style="cursor: pointer;"></canvas>
+      </div>
+
+      <div class="section-title">Setter Beta & Crux</div>
+      <div class="card telemetry-box" id="route-beta-box">Generate route...</div>
+      
+      <button class="btn btn-primary" onclick="randomizeRoute()">🎲 Re-Set Route Variation</button>
+    </div>
+  </div>
+
+  <!-- Right Viewport -->
+  <div id="viewport-container">
+    <div id="threejs-canvas"></div>
+
+    <!-- Floating Blender Overlay Controls -->
+    <div id="view-overlay">
+      <button class="overlay-btn" onclick="setCameraView(0.6, 0.5)">🎥 3D</button>
+      <button class="overlay-btn" onclick="setCameraView(0.0, 0.0)">Front</button>
+      <button class="overlay-btn" onclick="setCameraView(Math.PI/2, 0.0)">Side</button>
+      <button class="overlay-btn" onclick="setCameraView(0.0, Math.PI/2)">Top</button>
+      <button class="overlay-btn" onclick="toggleWireframe()">🌐 Wire</button>
+      <button class="overlay-btn" onclick="toggleMinimap()">🗺️ Map</button>
+    </div>
+
+    <!-- 2D Grip Minimap Inset -->
+    <div id="grip-minimap">
+      <div class="minimap-header">
+        <span>2D GRIP MAP (FRONT)</span>
+        <span style="cursor: pointer;" onclick="toggleMinimap()">✕</span>
+      </div>
+      <canvas id="minimap-canvas" width="164" height="100"></canvas>
+      <div class="minimap-legend"></div>
+      <div style="display: flex; justify-content: space-between; font-size: 8px; color: var(--text-muted); margin-top: 3px;">
+        <span>Blue (None)</span>
+        <span>Red (High)</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ============================================================================
+    // PROCEDURAL GEOMETRY SPECIFICATIONS & PROFILE GENERATORS
+    // ============================================================================
+    const SPECS = {
+      "Jug": {
+        "Easy":   { W:150, H:125, D:78, tl:36, bd:48, lean:35, p:2.5 },
+        "Medium": { W:128, H:110, D:66, tl:30, bd:40, lean:28, p:2.5 },
+        "Hard":   { W:102, H:92,  D:50, tl:24, bd:30, lean:18, p:2.5 }
+      },
+      "Crimp": {
+        "Easy":   { W:105, H:38, D:20, inc:6,  r:6.0, p:3.8 },
+        "Medium": { W:88,  H:32, D:13, inc:2,  r:4.5, p:3.8 },
+        "Hard":   { W:70,  H:28, D:7,  inc:-3, r:3.5, p:3.8 }
+      },
+      "Edge": {
+        "Easy":   { W:125, H:62, D:40, inc:12, r:8.0, p:3.4 },
+        "Medium": { W:110, H:55, D:30, inc:5,  r:7.0, p:3.4 },
+        "Hard":   { W:95,  H:48, D:22, inc:-5, r:9.0, p:3.4 }
+      },
+      "Sloper": {
+        "Easy":   { W:150, H:125, D:85, nt:3.4, nb:2.4, p:2.2 },
+        "Medium": { W:135, H:110, D:78, nt:2.7, nb:2.3, p:2.2 },
+        "Hard":   { W:120, H:100, D:70, nt:2.1, nb:2.1, p:2.2 }
+      },
+      "Pinch": {
+        "Easy":   { W:62, H:125, D:48, p:8.0 },
+        "Medium": { W:78, H:145, D:55, p:5.5 },
+        "Hard":   { W:90, H:175, D:65, p:3.2 }
+      },
+      "Pocket": {
+        "Easy":   { W:135, H:110, D:58, d:44, hy:30, a:45, fingers:[3],   p:2.6 },
+        "Medium": { W:125, H:105, D:44, d:29, hy:26, a:35, fingers:[2, 3], p:2.6 },
+        "Hard":   { W:110, H:95,  D:30, d:17, hy:22, a:20, fingers:[1, 2], p:2.6 }
+      }
+    };
+    const FINGER_W = { 1: 24.0, 2: 44.0, 3: 64.0 };
+    const ROUGH = { "Easy": 0.5, "Medium": 0.9, "Hard": 1.4 };
+
+    function clamp(v, a=0, b=1) { return Math.max(a, Math.min(b, v)); }
+    function smoothstep(t) { t = clamp(t); return t * t * (3 - 2 * t); }
+
+    function seedToInt(text) {
+      let str = String(text).trim();
+      let hash = 0;
+      for (let i = 0; i < str.length; i++) {
+        hash = ((hash << 5) - hash) + str.charCodeAt(i);
+        hash |= 0;
+      }
+      return Math.abs(hash);
+    }
+
+    function createRNG(seed) {
+      let s = seed % 2147483647;
+      if (s <= 0) s += 2147483646;
+      return function() {
+        s = (s * 16807) % 2147483647;
+        return (s - 1) / 2147483646;
+      };
+    }
+
+    function roundPoly(pts, seg=5) {
+      let out = [[pts[0][0], pts[0][1]]];
+      for (let i = 1; i < pts.length - 1; i++) {
+        let p0 = pts[i-1], p1 = pts[i], p2 = pts[i+1];
+        let r = p1[2] || 0;
+        let v1 = [p0[0] - p1[0], p0[1] - p1[1]];
+        let v2 = [p2[0] - p1[0], p2[1] - p1[1]];
+        let l1 = Math.hypot(...v1), l2 = Math.hypot(...v2);
+        if (r <= 1e-6 || l1 < 1e-7 || l2 < 1e-7) {
+          out.push([p1[0], p1[1]]);
+          continue;
+        }
+        let u1 = [v1[0]/l1, v1[1]/l1], u2 = [v2[0]/l2, v2[1]/l2];
+        let ang = Math.acos(clamp(u1[0]*u2[0] + u1[1]*u2[1], -1, 1));
+        if (ang < 1e-3 || ang > Math.PI - 1e-3) {
+          out.push([p1[0], p1[1]]);
+          continue;
+        }
+        let t = r / Math.tan(ang / 2);
+        let tmax = 0.5 * Math.min(l1, l2);
+        if (t > tmax) { t = tmax; r = t * Math.tan(ang / 2); }
+        let bx = u1[0] + u2[0], bz = u1[1] + u2[1];
+        let bl = Math.hypot(bx, bz);
+        bx /= bl; bz /= bl;
+        let dist = r / Math.sin(ang / 2);
+        let cy = p1[0] + bx * dist, cz = p1[1] + bz * dist;
+        let a1 = Math.atan2(p1[0] + u1[0]*t - cy, p1[1] + u1[1]*t - cz);
+        let a2 = Math.atan2(p1[0] + u2[0]*t - cy, p1[1] + u2[1]*t - cz);
+        let d = (a2 - a1 + Math.PI) % (2 * Math.PI) - Math.PI;
+        let n = Math.max(2, Math.ceil(Math.abs(d) / (Math.PI / 2) * seg));
+        for (let k = 0; k <= n; k++) {
+          let a = a1 + d * k / n;
+          out.push([cy + r * Math.sin(a), cz + r * Math.cos(a)]);
+        }
+      }
+      out.push([pts[pts.length - 1][0], pts[pts.length - 1][1]]);
+      return out;
+    }
+
+    function resample(poly, n) {
+      let d = [0];
+      for (let i = 0; i < poly.length - 1; i++) {
+        d.push(d[d.length - 1] + Math.hypot(poly[i+1][0] - poly[i][0], poly[i+1][1] - poly[i][1]));
+      }
+      let total = d[d.length - 1];
+      let out = [], k = 0;
+      for (let i = 0; i < n; i++) {
+        let s = total * i / (n - 1);
+        while (k < d.length - 2 && d[k+1] < s) k++;
+        let seg = d[k+1] - d[k];
+        let t = seg < 1e-12 ? 0 : (s - d[k]) / seg;
+        out.push([
+          poly[k][0] + (poly[k+1][0] - poly[k][0]) * t,
+          poly[k][1] + (poly[k+1][1] - poly[k][1]) * t
+        ]);
+      }
+      return out;
+    }
+
+    function getProfileCurve(htype, diff) {
+      let S = Object.assign({}, SPECS[htype][diff]);
+      let H = S.H, D = S.D;
+      let pts = [];
+      if (htype === "Jug") {
+        let yA = -H/2, yc = yA + 0.80 * H, yT = yA + 0.92 * H;
+        let lean = S.lean * Math.PI / 180;
+        let zin = D - S.tl;
+        let zb = Math.max(10, zin - S.bd * Math.tan(lean));
+        pts = [
+          [yA, 0, 0],
+          [yA + 0.10 * H, 0.92 * D, 0.45 * D],
+          [yc, D, 0.45 * S.tl],
+          [yc, zin, 0.45 * S.tl],
+          [yc - S.bd, zb, 0.50 * S.bd],
+          [yT - 0.05 * H, Math.max(zb + 4, 16), 6.0],
+          [yT, 0, 0]
+        ];
+      } else if (htype === "Crimp" || htype === "Edge") {
+        let yA = -H/2, yT = H/2;
+        let inc = (S.inc || 0) * Math.PI / 180;
+        let yE = yT + D * Math.tan(inc);
+        pts = [
+          [yA, 0, 0],
+          [yA + 0.30 * (yE - yA), 0.80 * D, 0.30 * H],
+          [yE, D, Math.min(S.r, 0.45 * D)],
+          [yT, 0, 0]
+        ];
+      } else if (htype === "Sloper") {
+        let b = H / 2, N = 40;
+        for (let t = 0; t <= N; t++) {
+          let th = Math.PI * (1 - t / N);
+          let c = Math.cos(th), s = Math.sin(th);
+          let n = c > 0 ? S.nt : S.nb;
+          let y = b * Math.sign(c) * Math.pow(Math.abs(c), 2 / n);
+          let z = D * Math.pow(Math.abs(s), 2 / n);
+          pts.push([y, z, 0]);
+        }
+      } else if (htype === "Pinch") {
+        let yA = -H/2, yT = H/2;
+        pts = [
+          [yA, 0, 0],
+          [yA + 0.03 * H, 0.90 * D, 0.50 * D],
+          [0, D, 0],
+          [yT - 0.03 * H, 0.90 * D, 0.50 * D],
+          [yT, 0, 0]
+        ];
+      } else { // Pocket
+        let yA = -H/2, yT = H/2;
+        let d = S.d, hy = S.hy;
+        let a = S.a * Math.PI / 180;
+        let dy = d * Math.tan(a);
+        pts = [
+          [yA, 0, 0],
+          [yA + 0.03 * H, D, 0.5 * D],
+          [-hy/2, D, 4.0],
+          [-hy/2 + dy, D - d, 8.0],
+          [hy/2 + dy, D - d, 8.0],
+          [hy/2, D, 4.0],
+          [yT - 0.03 * H, D, 0.5 * D],
+          [yT, 0, 0]
+        ];
+      }
+      return roundPoly(pts, 5);
+    }
+
+    // ============================================================================
+    // 3D MESH BUILDER & BIOMECHANICAL ANALYSIS
+    // ============================================================================
+    function generateHoldMesh(seedStr, htype, diff, q=1.0) {
+      let seedVal = seedToInt(seedStr);
+      let rng = createRNG(seedVal);
+      let S = Object.assign({}, SPECS[htype][diff]);
+      let W = S.W * (0.95 + rng() * 0.1);
+      let H = S.H * (0.95 + rng() * 0.1);
+      let D = S.D * (0.95 + rng() * 0.1);
+      let p = S.p;
+      let ax = W / 2.0;
+
+      let NU_ = Math.max(8, Math.round(40 * q));
+      let NF_ = Math.max(16, Math.round(48 * q));
+      let NB_ = Math.max(2, Math.round(4 * Math.sqrt(q)));
+
+      let us = [];
+      for (let i = 1; i < NU_; i++) {
+        us.push(-Math.cos(Math.PI * i / NU_));
+      }
+
+      let basePoly = getProfileCurve(htype, diff);
+      let rawProfile = resample(basePoly, NF_);
+
+      let verts = [[-ax, 0, 0]];
+      let bumps = [];
+      for (let b = 0; b < 5; b++) {
+        bumps.push([rng() * 0.08, rng() * 0.08, rng() * Math.PI * 2, ROUGH[diff] * 0.8]);
+      }
+
+      for (let u of us) {
+        let x = ax * u;
+        let k = Math.pow(Math.max(0, 1.0 - Math.pow(Math.abs(u), p)), 1.0 / p);
+        let col = [];
+        for (let j = 0; j < NF_; j++) {
+          let y = rawProfile[j][0] * k;
+          let z = rawProfile[j][1] * k;
+          if (j > 0 && j < NF_ - 1) {
+            let w = Math.sin(Math.PI * j / (NF_ - 1));
+            let nz = 0;
+            for (let bmp of bumps) nz += bmp[3] * Math.sin(bmp[0]*x + bmp[1]*y + bmp[2]);
+            z = Math.max(0.2, z + w * k * nz);
+          }
+          col.push([x, y, z]);
+        }
+        let yT = col[col.length - 1][1], yA = col[0][1];
+        for (let m = 1; m <= NB_; m++) {
+          let t = m / (NB_ + 1);
+          col.push([x, yT + (yA - yT) * t, 0]);
+        }
+        verts.push(...col);
+      }
+      verts.push([ax, 0, 0]);
+
+      let NS = NF_ + NB_;
+      let last = verts.length - 1;
+      function V(i, j) {
+        if (i === 0) return 0;
+        if (i === NU_) return last;
+        return 1 + (i - 1) * NS + (j % NS);
+      }
+
+      let tris = [];
+      for (let i = 0; i < NU_; i++) {
+        for (let j = 0; j < NS; j++) {
+          let a = V(i, j), b = V(i + 1, j), c = V(i + 1, j + 1), d = V(i, j + 1);
+          if (a !== b && b !== c && a !== c) tris.push([a, b, c]);
+          if (a !== c && c !== d && a !== d) tris.push([a, c, d]);
+        }
+      }
+
+      // Biomechanical normal & grip scoring
+      let scores = [];
+      let usableArea = 0, totalArea = 0;
+      let incutAngles = [];
+      let gripX = [];
+
+      for (let tri of tris) {
+        let v0 = verts[tri[0]], v1 = verts[tri[1]], v2 = verts[tri[2]];
+        let ux = v1[0] - v0[0], uy = v1[1] - v0[1], uz = v1[2] - v0[2];
+        let vx = v2[0] - v0[0], vy = v2[1] - v0[1], vz = v2[2] - v0[2];
+        let nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx;
+        let l = Math.hypot(nx, ny, nz) || 1.0;
+        nx /= l; ny /= l; nz /= l;
+
+        let area = 0.5 * l;
+        if (v0[2] < 0.05 && v1[2] < 0.05 && v2[2] < 0.05) {
+          scores.push(0);
+          continue;
+        }
+        totalArea += area;
+
+        let s = (htype === "Pinch") ? Math.min(1.0, Math.abs(nx) * 1.35) : Math.max(0, ny);
+        scores.push(s);
+
+        if (s > 0.35) {
+          usableArea += area;
+          gripX.push((v0[0] + v1[0] + v2[0]) / 3);
+          incutAngles.push(Math.atan2(-nz, ny) * 180 / Math.PI);
+        }
+      }
+
+      let avgIncut = incutAngles.length ? (incutAngles.reduce((a,b)=>a+b, 0) / incutAngles.length) : 0;
+      let gripSpan = gripX.length ? (Math.max(...gripX) - Math.min(...gripX)) : 0;
+      let muReq = avgIncut < 0 ? Math.tan(Math.abs(avgIncut) * Math.PI / 180) : 0.05;
+
+      // HDI Rating (1 to 10)
+      let depthScore = Math.max(1, Math.min(10, 10 - (D - 5) * 0.4));
+      let slopeScore = avgIncut > 15 ? 1 : (avgIncut > 0 ? 3 : (avgIncut > -15 ? 5.5 : 8.5));
+      let isoScore = gripSpan < 30 ? 9.5 : (gripSpan < 55 ? 7 : (gripSpan < 90 ? 4.5 : 2.5));
+      let hdi = Math.max(1, Math.min(10, 0.45 * depthScore + 0.35 * slopeScore + 0.20 * isoScore));
+
+      let gradeBand = hdi <= 2.2 ? "V0–V1 (Introductory)" :
+                     (hdi <= 4.0 ? "V2–V3 (Intermediate)" :
+                     (hdi <= 6.5 ? "V4–V5 (Advanced)" :
+                     (hdi <= 8.5 ? "V6–V8 (Expert)" : "V9+ (Elite)")));
+
+      return {
+        verts, tris, scores,
+        W: W.toFixed(1), H: H.toFixed(1), D: D.toFixed(1),
+        usableArea: (usableArea / 100).toFixed(1),
+        totalArea: (totalArea / 100).toFixed(1),
+        ratio: ((usableArea/totalArea)*100 || 0).toFixed(1),
+        avgIncut: avgIncut.toFixed(1),
+        gripSpan: gripSpan.toFixed(1),
+        muReq: muReq.toFixed(2),
+        hdi: hdi.toFixed(1),
+        gradeBand
+      };
+    }
+
+    // ============================================================================
+    // THREE.JS VIEWPORT & RENDERING
+    // ============================================================================
+    let scene, camera, renderer, controls, holdMesh, wireframeMesh;
+    let currentHoldData = null;
+
+    function initThreeJS() {
+      const container = document.getElementById("threejs-canvas");
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x11161f);
+
+      camera = new THREE.PerspectiveCamera(40, container.clientWidth / container.clientHeight, 0.1, 1000);
+      camera.position.set(0, -180, 220);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(container.clientWidth, container.clientHeight);
+      renderer.setPixelRatio(window.devicePixelRatio);
+      container.appendChild(renderer.domElement);
+
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+
+      const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.6);
+      scene.add(hemiLight);
+
+      const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+      dirLight.position.set(-100, 150, 200);
+      scene.add(dirLight);
+
+      window.addEventListener('resize', onWindowResize);
+      animate();
+    }
+
+    function onWindowResize() {
+      const container = document.getElementById("threejs-canvas");
+      camera.aspect = container.clientWidth / container.clientHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(container.clientWidth, container.clientHeight);
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    function getHeatmapColor(score) {
+      let s = clamp(score);
+      // Blue -> Yellow -> Red
+      let r, g, b;
+      if (s < 0.3) {
+        let t = s / 0.3;
+        r = 0.10 + t * 0.02; g = 0.28 + t * 0.37; b = 0.80 + t * 0.05;
+      } else if (s < 0.6) {
+        let t = (s - 0.3) / 0.3;
+        r = 0.12 + t * 0.84; g = 0.65 + t * 0.19; b = 0.85 - t * 0.73;
+      } else {
+        let t = (s - 0.6) / 0.4;
+        r = 0.96 - t * 0.04; g = 0.84 - t * 0.70; b = 0.12 + t * 0.02;
+      }
+      return new THREE.Color(r, g, b);
+    }
+
+    function updateHold() {
+      let seed = document.getElementById("hold-seed").value || "1234";
+      let htype = document.querySelector('input[name="htype"]:checked').value;
+      let diff = document.querySelector('input[name="diff"]:checked').value;
+      let q = parseFloat(document.getElementById("quality-slider").value);
+
+      currentHoldData = generateHoldMesh(seed, htype, diff, q);
+
+      // Build Three.js Geometry
+      if (holdMesh) scene.remove(holdMesh);
+      if (wireframeMesh) scene.remove(wireframeMesh);
+
+      const geometry = new THREE.BufferGeometry();
+      const pos = [];
+      const colors = [];
+      const normals = [];
+
+      let mode = document.querySelector('input[name="shading"]:checked').value;
+
+      for (let i = 0; i < currentHoldData.tris.length; i++) {
+        let tri = currentHoldData.tris[i];
+        let s = currentHoldData.scores[i];
+        let col = getHeatmapColor(s);
+
+        let v0 = currentHoldData.verts[tri[0]];
+        let v1 = currentHoldData.verts[tri[1]];
+        let v2 = currentHoldData.verts[tri[2]];
+
+        let ux = v1[0] - v0[0], uy = v1[1] - v0[1], uz = v1[2] - v0[2];
+        let vx = v2[0] - v0[0], vy = v2[1] - v0[1], vz = v2[2] - v0[2];
+        let nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx;
+        let l = Math.hypot(nx, ny, nz) || 1;
+        nx /= l; ny /= l; nz /= l;
+
+        for (let idx of tri) {
+          let v = currentHoldData.verts[idx];
+          pos.push(v[0], v[1], v[2]);
+          normals.push(nx, ny, nz);
+          if (mode === 'heatmap') {
+            colors.push(col.r, col.g, col.b);
+          } else if (mode === 'normals') {
+            colors.push(nx * 0.5 + 0.5, ny * 0.5 + 0.5, nz * 0.5 + 0.5);
+          } else {
+            colors.push(0.9, 0.35, 0.2);
+          }
+        }
+      }
+
+      geometry.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+      geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+      geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+
+      const material = new THREE.MeshStandardMaterial({
+        vertexColors: true,
+        roughness: 0.6,
+        metalness: 0.1,
+        side: THREE.DoubleSide
+      });
+
+      holdMesh = new THREE.Mesh(geometry, material);
+      scene.add(holdMesh);
+
+      const wireGeo = new THREE.WireframeGeometry(geometry);
+      wireframeMesh = new THREE.LineSegments(wireGeo, new THREE.LineBasicMaterial({ color: 0x05070a }));
+      wireframeMesh.visible = false;
+      scene.add(wireframeMesh);
+
+      // Update UI Telemetry
+      document.getElementById("hdi-score").innerText = `HDI: ${currentHoldData.hdi} / 10.0`;
+      document.getElementById("hdi-grade").innerText = `Grade Band: ${currentHoldData.gradeBand}`;
+
+      document.getElementById("metrics-telemetry").innerText = 
+        `DIMENSIONS:   ${currentHoldData.W} x ${currentHoldData.H} x ${currentHoldData.D} mm\n` +
+        `USABLE AREA:  ${currentHoldData.usableArea} cm² (${currentHoldData.ratio}%)\n` +
+        `MEAN INCUT:   ${currentHoldData.avgIncut}°\n` +
+        `REQ. FRICTION: μ = ${currentHoldData.muReq}\n` +
+        `CONTACT SPAN: ${currentHoldData.gripSpan} mm`;
+
+      drawProfile2D(htype, diff);
+      drawMinimap2D();
+    }
+
+    function updateShading() {
+      updateHold();
+    }
+
+    function drawProfile2D(htype, diff) {
+      const cvs = document.getElementById("profile-canvas");
+      const ctx = cvs.getContext("2d");
+      ctx.clearRect(0, 0, cvs.width, cvs.height);
+
+      let pts = getProfileCurve(htype, diff);
+      let ys = pts.map(p => p[0]), zs = pts.map(p => p[1]);
+      let minY = Math.min(...ys), maxY = Math.max(...ys), maxZ = Math.max(...zs);
+
+      let scale = Math.min((cvs.width - 70) / (maxZ || 1), (cvs.height - 20) / (maxY - minY || 1));
+      let wallX = 40, midY = cvs.height / 2;
+
+      ctx.strokeStyle = "#4a5568";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(wallX, 5); ctx.lineTo(wallX, cvs.height - 5);
+      ctx.stroke();
+
+      ctx.fillStyle = "#2b6cb0";
+      ctx.strokeStyle = "#63b3ed";
+      ctx.beginPath();
+      for (let i = 0; i < pts.length; i++) {
+        let px = wallX + pts[i][1] * scale;
+        let py = midY - (pts[i][0] - (maxY + minY)/2) * scale;
+        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    }
+
+    function drawMinimap2D() {
+      const cvs = document.getElementById("minimap-canvas");
+      const ctx = cvs.getContext("2d");
+      ctx.clearRect(0, 0, cvs.width, cvs.height);
+      if (!currentHoldData) return;
+
+      let verts = currentHoldData.verts;
+      let xs = verts.map(v => v[0]), ys = verts.map(v => v[1]);
+      let minX = Math.min(...xs), maxX = Math.max(...xs);
+      let minY = Math.min(...ys), maxY = Math.max(...ys);
+
+      let scale = Math.min((cvs.width - 20) / (maxX - minX || 1), (cvs.height - 20) / (maxY - minY || 1));
+      let cx = cvs.width / 2, cy = cvs.height / 2;
+
+      for (let i = 0; i < currentHoldData.tris.length; i += 2) {
+        let tri = currentHoldData.tris[i];
+        let v0 = verts[tri[0]], v1 = verts[tri[1]], v2 = verts[tri[2]];
+        if (v0[2] < 0.1 && v1[2] < 0.1 && v2[2] < 0.1) continue;
+
+        let s = currentHoldData.scores[i];
+        let col = getHeatmapColor(s);
+        ctx.fillStyle = `rgb(${Math.round(col.r*255)}, ${Math.round(col.g*255)}, ${Math.round(col.b*255)})`;
+
+        ctx.beginPath();
+        ctx.moveTo(cx + (v0[0] - (maxX+minX)/2)*scale, cy - (v0[1] - (maxY+minY)/2)*scale);
+        ctx.lineTo(cx + (v1[0] - (maxX+minX)/2)*scale, cy - (v1[1] - (maxY+minY)/2)*scale);
+        ctx.lineTo(cx + (v2[0] - (maxX+minX)/2)*scale, cy - (v2[1] - (maxY+minY)/2)*scale);
+        ctx.closePath();
+        ctx.fill();
+      }
+    }
+
+    // ============================================================================
+    // TAB 3: ROUTE SETTER SUITE
+    // ============================================================================
+    let currentRoute = [];
+    let selectedHoldIdx = 0;
+
+    function onGradeSliderChange(val) {
+      document.getElementById("route-grade-label").innerText = `Grade: V${val}`;
+      generateRoute();
+    }
+
+    function randomizeRoute() {
+      generateRoute(Math.floor(Math.random() * 999999));
+    }
+
+    function generateRoute(forcedSeed) {
+      let grade = parseInt(document.getElementById("v-grade-slider").value);
+      let angle = parseInt(document.querySelector('input[name="wall-angle"]:checked').value);
+      let seed = forcedSeed || (seedToInt(grade) + angle * 77);
+      let rng = createRNG(seed);
+
+      let reachCm = (32.0 + grade * 5.2) * Math.max(0.75, 1 - angle / 180);
+      let pool = grade <= 2 ? ["Jug", "Edge"] : (grade <= 5 ? ["Edge", "Pinch", "Sloper", "Crimp"] : ["Crimp", "Sloper", "Pinch"]);
+      let diff = grade <= 2 ? "Easy" : (grade <= 6 ? "Medium" : "Hard");
+
+      currentRoute = [];
+      let x = 120 + (rng() - 0.5) * 40;
+      let y = 50;
+
+      for (let i = 0; i < 6; i++) {
+        let dx = (rng() > 0.5 ? 1 : -1) * (0.35 + rng() * 0.45) * reachCm;
+        let dy = (0.75 + rng() * 0.35) * reachCm;
+        x = Math.max(35, Math.min(205, i === 0 ? x : x + dx));
+        y = Math.max(45, Math.min(320, i === 0 ? y : y + dy));
+        currentRoute.push({
+          idx: i,
+          role: i === 0 ? "START" : (i === 5 ? "TOP" : `Move #${i+1}`),
+          type: pool[Math.floor(rng() * pool.length)],
+          diff: diff,
+          seed: Math.floor(rng() * 99999),
+          x: Math.round(x),
+          y: Math.round(y),
+          reach: Math.round(Math.hypot(dx, dy))
+        });
+      }
+      drawWallRoute();
+    }
+
+    function drawWallRoute() {
+      const cvs = document.getElementById("wall-canvas");
+      const ctx = cvs.getContext("2d");
+      ctx.clearRect(0, 0, cvs.width, cvs.height);
+
+      let scale = Math.min((cvs.width - 20) / 240, (cvs.height - 20) / 360);
+      let ox = (cvs.width - 240 * scale) / 2, oy = cvs.height - 10;
+
+      ctx.fillStyle = "#151b26";
+      ctx.fillRect(ox, oy - 360 * scale, 240 * scale, 360 * scale);
+
+      ctx.strokeStyle = "#4a5568";
+      ctx.setLineDash([3, 3]);
+      ctx.beginPath();
+      for (let i = 0; i < currentRoute.length; i++) {
+        let px = ox + currentRoute[i].x * scale, py = oy - currentRoute[i].y * scale;
+        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      }
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      for (let i = 0; i < currentRoute.length; i++) {
+        let h = currentRoute[i];
+        let px = ox + h.x * scale, py = oy - h.y * scale;
+        ctx.fillStyle = (i === 0) ? "#38a169" : (i === currentRoute.length - 1 ? "#e53e3e" : "#ecc94b");
+        ctx.beginPath();
+        ctx.arc(px, py, 6, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold 9px sans-serif";
+        ctx.fillText(i + 1, px - 3, py - 8);
+      }
+
+      let activeH = currentRoute[selectedHoldIdx];
+      document.getElementById("route-beta-box").innerText = 
+        `SELECTED: Hold #${activeH.idx + 1} (${activeH.role})\n` +
+        `Type:     ${activeH.type} (${activeH.diff})\n` +
+        `Position: X=${activeH.x}cm, Y=${activeH.y}cm\n` +
+        `Span:     ${activeH.reach} cm to next hold`;
+    }
+
+    document.getElementById("wall-canvas").addEventListener("click", function(e) {
+      const cvs = document.getElementById("wall-canvas");
+      const rect = cvs.getBoundingClientRect();
+      let mx = e.clientX - rect.left, my = e.clientY - rect.top;
+      let scale = Math.min((cvs.width - 20) / 240, (cvs.height - 20) / 360);
+      let ox = (cvs.width - 240 * scale) / 2, oy = cvs.height - 10;
+
+      for (let i = 0; i < currentRoute.length; i++) {
+        let px = ox + currentRoute[i].x * scale, py = oy - currentRoute[i].y * scale;
+        if (Math.hypot(mx - px, my - py) < 14) {
+          selectedHoldIdx = i;
+          let h = currentRoute[i];
+          document.getElementById("hold-seed").value = h.seed;
+          document.querySelector(`input[name="htype"][value="${h.type}"]`).checked = true;
+          document.querySelector(`input[name="diff"][value="${h.diff}"]`).checked = true;
+          updateHold();
+          drawWallRoute();
+          break;
+        }
+      }
+    });
+
+    // ============================================================================
+    // BINARY STL EXPORTER
+    // ============================================================================
+    function exportSTL() {
+      if (!currentHoldData) return;
+      let tris = currentHoldData.tris;
+      let verts = currentHoldData.verts;
+
+      let bufferSize = 84 + 50 * tris.length;
+      let buffer = new ArrayBuffer(bufferSize);
+      let view = new DataView(buffer);
+
+      for (let i = 0; i < 80; i++) view.setUint8(i, 32);
+      view.setUint32(80, tris.length, true);
+
+      let offset = 84;
+      for (let tri of tris) {
+        let v0 = verts[tri[0]], v1 = verts[tri[1]], v2 = verts[tri[2]];
+        let ux = v1[0] - v0[0], uy = v1[1] - v0[1], uz = v1[2] - v0[2];
+        let vx = v2[0] - v0[0], vy = v2[1] - v0[1], vz = v2[2] - v0[2];
+        let nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx;
+        let l = Math.hypot(nx, ny, nz) || 1;
+
+        view.setFloat32(offset, nx/l, true); offset += 4;
+        view.setFloat32(offset, ny/l, true); offset += 4;
+        view.setFloat32(offset, nz/l, true); offset += 4;
+
+        for (let idx of tri) {
+          let v = verts[idx];
+          view.setFloat32(offset, v[0], true); offset += 4;
+          view.setFloat32(offset, v[1], true); offset += 4;
+          view.setFloat32(offset, v[2], true); offset += 4;
+        }
+        view.setUint16(offset, 0, true); offset += 2;
+      }
+
+      let blob = new Blob([buffer], { type: 'application/octet-stream' });
+      let link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `climbing_hold_${document.querySelector('input[name="htype"]:checked').value}.stl`;
+      link.click();
+    }
+
+    // ============================================================================
+    // UTILITY & UI EVENT HANDLERS
+    // ============================================================================
+    function switchTab(tabId) {
+      document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+      document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
+      event.target.classList.add("active");
+      document.getElementById(`tab-${tabId}`).classList.add("active");
+    }
+
+    function randomizeSeed() {
+      document.getElementById("hold-seed").value = Math.floor(Math.random() * 999999);
+      updateHold();
+    }
+
+    function setCameraView(az, el) {
+      let dist = camera.position.length();
+      camera.position.x = dist * Math.sin(az) * Math.cos(el);
+      camera.position.y = -dist * Math.cos(az) * Math.cos(el);
+      camera.position.z = dist * Math.sin(el);
+      camera.lookAt(0, 0, 0);
+    }
+
+    function toggleWireframe() {
+      if (wireframeMesh) wireframeMesh.visible = !wireframeMesh.visible;
+    }
+
+    function toggleMinimap() {
+      const mm = document.getElementById("grip-minimap");
+      mm.style.display = (mm.style.display === "none") ? "block" : "none";
+    }
+
+    // Initialize App
+    window.onload = function() {
+      initThreeJS();
+      updateHold();
+      generateRoute();
+    };
+  </script>
+</body>
+</html>
