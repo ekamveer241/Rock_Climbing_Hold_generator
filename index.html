@@ -73,13 +73,6 @@
   .legend3 { display: flex; justify-content: space-between; }
 
   /* custom tab */
-  .chips { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0; }
-  .chip { background: var(--card); border: 1px solid var(--border); color: var(--fg); border-radius: 10px; padding: 2px 8px;
-          font-size: 11px; cursor: pointer; }
-  .chip:hover { border-color: var(--accent); }
-  .understood { font-size: 11px; color: var(--fg); margin-top: 6px; }
-  .understood b { color: #9ae6b4; }
-  .understood.err b { color: var(--danger); }
   .slider-row { margin: 4px 0 2px; }
   .slider-row .row { justify-content: space-between; }
   .slider-row .val { font-family: var(--mono); color: #fff; font-size: 11px; }
@@ -128,8 +121,6 @@
   <aside class="sidebar">
     <div class="tabs" role="tablist">
       <button class="tab" role="tab" data-tab="design" aria-selected="true">🛠️ Hold Design</button>
-      <button class="tab" role="tab" data-tab="analysis" aria-selected="false">📊 Biomechanics</button>
-      <!-- <button class="tab" role="tab" data-tab="route" aria-selected="false">🧗 Route Setter</button>-->
       <button class="tab" role="tab" data-tab="custom" aria-selected="false">✨ Custom</button>
     </div>
 
@@ -143,7 +134,7 @@
 
       <h3>HOLD CLASSIFICATION</h3>
       <div class="grid2" id="htype-box"></div>
-      <label class="opt" style="margin-top:2px" data-tip="Your own hold, created from a text prompt or a hand-drawn profile in the ✨ Custom tab">
+      <label class="opt" style="margin-top:2px" data-tip="Your own hold, created from a profile in the ✨ Custom tab">
         <input type="radio" name="htype" value="Custom"> Custom ✨ <span class="muted" id="custom-name-hint"></span>
       </label>
 
@@ -166,31 +157,8 @@
       </div>
     </section>
 
-    <!-- ============ TAB 2: BIOMECHANICS ============ -->
-    <section class="panel" id="tab-analysis" role="tabpanel" hidden>
-      <h3>3D SURFACE &amp; NORMAL SHADING</h3>
-      <div id="mode-box"></div>
-      <div class="modekey" id="mode-key"></div>
-      <label class="opt gap-b" data-tip="Enables/disables the 2D front grip projection overlay in the bottom-right of the 3D viewport">
-        <input type="checkbox" id="chk-map" checked> Show 2D Grip Minimap in Viewport
-      </label>
-
-      <h3>HOLD DIFFICULTY RATING</h3>
-      <div class="card gap-b">
-        <div class="hdi-score" id="hdi-score">HDI: -- / 10.0</div>
-        <div class="hdi-grade" id="hdi-grade">Grade Band: --</div>
-        <div class="progress"><div id="hdi-bar"></div></div>
-      </div>
-
-      <h3>BIOMECHANICAL &amp; FRICTION METRICS</h3>
-      <pre class="telemetry" id="telemetry">Computing analysis...</pre>
-
-      <h3>ROUTE SETTER'S GUIDE</h3>
-      <div class="guide" id="guide"></div>
-    </section>
-
-    <!-- ============ TAB 3: ROUTE SETTER ============ -->
-    <section class="panel" id="tab-route" role="tabpanel" hidden>
+    <!-- ============ TAB 2: ROUTE SETTER ============ -->
+   <!-- <section class="panel" id="tab-route" role="tabpanel" hidden>
       <h3>TARGET DIFFICULTY (V-SCALE)</h3>
       <div class="vgrade" id="v-grade">Grade: V3 (Intermediate)</div>
       <input type="range" id="v-slider" min="0" max="12" step="1" value="3">
@@ -208,33 +176,11 @@
       <button class="btn action block" id="btn-route-regen" data-tip="Generates a fresh sequence of holds following routesetting movement flow">🎲 Re-Set Route Variation</button>
       <button class="btn block" id="btn-route-load">🔍 Load Selected Hold in 3D View</button>
       <button class="btn block" id="btn-route-export" data-tip="Saves all procedural holds in this climb into a ready-to-3D-print ZIP folder">📦 Export All Route STLs to Folder...</button>
-    </section>
+    </section> -->
 
     <!-- ============ TAB 4: CUSTOM HOLD ============ -->
     <section class="panel" id="tab-custom" role="tabpanel" hidden>
-      <h3>DESCRIBE YOUR HOLD</h3>
-      <textarea id="prompt" rows="3" placeholder="e.g. a wide two-hand rail, 30 mm deep, with a slightly incut lip"></textarea>
-      <div class="chips" id="chips"></div>
-
-      <div class="row" style="gap:14px">
-        <label class="opt"><input type="radio" name="engine" value="local" checked> Built-in interpreter</label>
-        <label class="opt"><input type="radio" name="engine" value="ai"> Claude AI</label>
-      </div>
-      <details class="ai" id="ai-settings">
-        <summary>Claude AI settings (uses your own Anthropic API key)</summary>
-        <div class="card">
-          <label class="muted" for="api-key">API key</label>
-          <input type="password" id="api-key" placeholder="sk-ant-..." autocomplete="off">
-          <label class="muted" for="api-model" style="display:block;margin-top:6px">Model</label>
-          <input type="text" id="api-model" value="claude-sonnet-5-5">
-          <label class="opt" style="margin-top:6px"><input type="checkbox" id="api-remember"> Remember key in this browser</label>
-          <div class="note">The key is sent only to api.anthropic.com from your browser. Each visitor of your GitHub page uses their own key. The built-in interpreter needs no key and works offline.</div>
-        </div>
-      </details>
-      <button class="btn action block" id="btn-prompt">✨ Create Hold from Prompt</button>
-      <div class="understood" id="understood"></div>
-
-      <h3 style="margin-top:12px">PROFILE EDITOR <span class="badge" id="kind-badge"></span></h3>
+      <h3>PROFILE EDITOR <span class="badge" id="kind-badge"></span></h3>
       <canvas id="editor" class="mini" height="210" style="height:210px" tabindex="0" aria-label="Profile editor"></canvas>
       <div class="note" id="editor-hint">Drag points to reshape the side profile. Double-click a line to add a point. Select a point and press Delete to remove it.</div>
       <div class="lockbar">
@@ -1049,21 +995,6 @@ function analyzeMesh(verts, tris, htype, diff, info) {
   };
 }
 
-function heatmapRGB(score, lit) {
-  const s = Math.max(0, Math.min(1, score));
-  let r, g, b, t;
-  if (s < 0.3) {
-    t = s / 0.3;
-    r = (25 + t * 5) * lit; g = (75 + t * 90) * lit; b = (185 + t * 30) * lit;
-  } else if (s < 0.6) {
-    t = (s - 0.3) / 0.3;
-    r = (30 + t * 215) * lit; g = (165 + t * 50) * lit; b = (215 - t * 185) * lit;
-  } else {
-    t = (s - 0.6) / 0.4;
-    r = (245 - t * 10) * lit; g = (215 - t * 180) * lit; b = (30 + t * 5) * lit;
-  }
-  return [clamp(Math.trunc(r), 0, 255), clamp(Math.trunc(g), 0, 255), clamp(Math.trunc(b), 0, 255)];
-}
 function normalRGB(nx, ny, nz) {
   return [Math.trunc(clamp(nx * 0.5 + 0.5) * 255), Math.trunc(clamp(ny * 0.5 + 0.5) * 255),
           Math.trunc(clamp(nz * 0.5 + 0.5) * 255)];
@@ -1197,7 +1128,7 @@ function sanitizeSpec(raw) {
   spec.summary = String(raw.summary || "").slice(0, 240);
   spec.base = HOLD_TYPES.includes(raw.base) ? raw.base : "Jug";
   spec.roughness = raw.roughness == null || raw.roughness === "" ? null : num(raw.roughness, ROUGH_RANGE[0], ROUGH_RANGE[1], null);
-  const kind = raw.kind === "tuned" ? "tuned" : "profile";
+  const kind = raw.kind === "tuned" || spec.base === "Pocket" ? "tuned" : "profile";
   spec.kind = kind;
   if (kind === "tuned") {
     const ref = SPECS[spec.base].Medium;
@@ -1465,11 +1396,11 @@ const LS = {
 const K_CUSTOM = "holdstudio.custom.v1", K_LIB = "holdstudio.library.v1", K_KEY = "holdstudio.apikey", K_MODEL = "holdstudio.model";
 
 const st = {
-  seed: "1234", diff: "Medium", htype: "Jug", res: RES_DEFAULT, wire: false, viewMode: "Heatmap", showMap: true,
+  seed: "1234", diff: "Medium", htype: "Jug", res: RES_DEFAULT, wire: false, viewMode: "Solid",
   routeGrade: 3, routeAngle: 15, routeCount: 6, routeSeed: "54321", route: [], selRoute: 0,
   az: 0.6, tilt: 0.5, zoom: 1.0, panX: 0, panY: 0,
   mesh: null, meshFast: null, analysis: null, analysisFast: null, center: [0, 0, 0], extent: 100,
-  gizmoHit: [], mapClose: null, mapCard: null, batchCancel: false, batchRunning: false,
+  gizmoHit: [], batchCancel: false, batchRunning: false,
   custom: null, selPt: -1,
 };
 
@@ -1583,33 +1514,35 @@ function buildWidgets() {
   }));
 
   // modes
-  const modes = [
-    ["Grip Heatmap (Red=High, Blue=None)", "Heatmap", "Red: High positive grip, Yellow: Moderate/Friction, Blue: Inactive"],
-    ["Blender View Normals (RGB MatCap)", "Normals", "Standard 3D Camera-Space Normals (+Z Cyan/Blue, +Y Green, +X Red)"],
-    ["World Coordinate Normals", "WorldNormals", "World-space axes (Green=Up wall, Blue=Standoff depth, Red=Lateral)"],
-    ["Realistic Resin", "Solid", "Natural climbing hold polyurethane material lighting"],
-  ];
   const mb = $("mode-box");
-  for (const [text, val, tip] of modes) {
-    const l = document.createElement("label"); l.className = "opt"; l.dataset.tip = tip;
-    l.innerHTML = `<input type="radio" name="vmode" value="${val}"${val === "Heatmap" ? " checked" : ""}> ${text}`;
-    mb.appendChild(l);
+  if (mb) {
+    const modes = [
+      ["Blender View Normals (RGB MatCap)", "Normals", "Standard 3D Camera-Space Normals (+Z Cyan/Blue, +Y Green, +X Red)"],
+      ["World Coordinate Normals", "WorldNormals", "World-space axes (Green=Up wall, Blue=Standoff depth, Red=Lateral)"],
+      ["Realistic Resin", "Solid", "Natural climbing hold polyurethane material lighting"],
+    ];
+    for (const [text, val, tip] of modes) {
+      const l = document.createElement("label"); l.className = "opt"; l.dataset.tip = tip;
+      l.innerHTML = `<input type="radio" name="vmode" value="${val}"${val === "Solid" ? " checked" : ""}> ${text}`;
+      mb.appendChild(l);
+    }
+    document.querySelectorAll('input[name="vmode"]').forEach((r) => r.addEventListener("change", () => {
+      st.viewMode = r.value; onViewModeChange();
+    }));
   }
-  document.querySelectorAll('input[name="vmode"]').forEach((r) => r.addEventListener("change", () => {
-    st.viewMode = r.value; onViewModeChange();
-  }));
-  $("chk-map").addEventListener("change", (e) => { st.showMap = e.target.checked; redraw(); syncToolbar(); });
 
   // angles
   const ab = $("angle-box");
-  for (const [text, val] of [["Vert (0°)", 0], ["Overhang (15°)", 15], ["Steep (30°)", 30], ["Roof (45°)", 45]]) {
-    const l = document.createElement("label"); l.className = "opt";
-    l.innerHTML = `<input type="radio" name="angle" value="${val}"${val === 15 ? " checked" : ""}> ${text}`;
-    ab.appendChild(l);
+  if (ab) {
+    for (const [text, val] of [["Vert (0°)", 0], ["Overhang (15°)", 15], ["Steep (30°)", 30], ["Roof (45°)", 45]]) {
+      const l = document.createElement("label"); l.className = "opt";
+      l.innerHTML = `<input type="radio" name="angle" value="${val}"${val === 15 ? " checked" : ""}> ${text}`;
+      ab.appendChild(l);
+    }
+    document.querySelectorAll('input[name="angle"]').forEach((r) => r.addEventListener("change", () => {
+      st.routeAngle = Number(r.value); generateRoute();
+    }));
   }
-  document.querySelectorAll('input[name="angle"]').forEach((r) => r.addEventListener("change", () => {
-    st.routeAngle = Number(r.value); generateRoute();
-  }));
 
   // floating toolbar
   const buttons = [
@@ -1621,7 +1554,6 @@ function buildWidgets() {
     ["Side", () => setView(Math.PI / 2, 0), "Profile View (X)"],
     ["Top", () => setView(0, Math.PI / 2), "Top View (Y)"],
     ["🌐 Wire", toggleWire, "Toggle Wireframe", "wire"],
-    ["🗺️ Map", toggleMap, "Toggle 2D Grip Minimap Inset (Bottom-Right)", "map"],
   ];
   const bar = $("gizmo-bar");
   for (const [text, fn, tip, id] of buttons) {
@@ -1649,11 +1581,12 @@ function buildWidgets() {
   $("btn-batch").onclick = batch;
   $("btn-cancel").onclick = () => { st.batchCancel = true; setStatus("Stopping batch..."); };
 
-  $("v-slider").addEventListener("input", (e) => { st.routeGrade = Number(e.target.value); onRouteGradeChange(); });
-  $("btn-route-regen").onclick = () => { st.routeSeed = String(Math.floor(10000 + Math.random() * 990000)); generateRoute(); };
-  $("btn-route-load").onclick = loadSelectedRouteHold;
-  $("btn-route-export").onclick = exportRoutePackage;
-  $("wall").addEventListener("click", onWallClick);
+  const vSlider = $("v-slider");
+  if (vSlider) vSlider.addEventListener("input", (e) => { st.routeGrade = Number(e.target.value); onRouteGradeChange(); });
+  const btnRouteRegen = $("btn-route-regen"); if (btnRouteRegen) btnRouteRegen.onclick = () => { st.routeSeed = String(Math.floor(10000 + Math.random() * 990000)); generateRoute(); };
+  const btnRouteLoad = $("btn-route-load"); if (btnRouteLoad) btnRouteLoad.onclick = loadSelectedRouteHold;
+  const btnRouteExport = $("btn-route-export"); if (btnRouteExport) btnRouteExport.onclick = exportRoutePackage;
+  const wall = $("wall"); if (wall) wall.addEventListener("click", onWallClick);
 
   // keyboard shortcuts (same as original)
   document.addEventListener("keydown", (e) => {
@@ -1672,9 +1605,8 @@ function buildWidgets() {
 
 function selectTab(name) {
   document.querySelectorAll(".tab").forEach((t) => t.setAttribute("aria-selected", t.dataset.tab === name ? "true" : "false"));
-  for (const n of ["design", "analysis", "route", "custom"]) $("tab-" + n).hidden = n !== name;
+  for (const n of ["design", "custom"]) $("tab-" + n).hidden = n !== name;
   if (name === "design") redrawProfile();
-  if (name === "route") redrawWall();
   if (name === "custom") { syncCustomPanel(); drawEditor(); }
 }
 
@@ -1685,11 +1617,13 @@ function syncRadios() {
   $("custom-name-hint").textContent = st.custom ? `(${st.custom.name})` : "";
 }
 function syncToolbar() {
-  $("tb-wire").classList.toggle("on", st.wire);
-  $("tb-map").classList.toggle("on", st.showMap);
-  $("chk-map").checked = st.showMap;
+  const tbWire = $("tb-wire"); if (tbWire) tbWire.classList.toggle("on", st.wire);
+  const tbMap = $("tb-map"); if (tbMap) tbMap.classList.toggle("on", false);
 }
-function updateResLabel() { $("res-label").textContent = `MESH QUALITY (${q().toFixed(2)}x)`; }
+function updateResLabel() {
+  const resLabel = $("res-label");
+  if (resLabel) resLabel.textContent = `MESH QUALITY (${q().toFixed(2)}x)`;
+}
 
 // ---------------------------------------------------------------------------
 // Generation & analysis panel (regen)
@@ -1742,10 +1676,10 @@ function updateAnalysisPanel() {
   const [, , inf] = st.mesh;
   const ana = st.analysis;
   const t = st.htype, d = st.diff, b = inf.behaves;
-  $("hdi-score").textContent = `HDI: ${ana.hdi.toFixed(1)} / 10.0`;
-  $("hdi-grade").textContent = `Estimated Grade: ${ana.grade_band}`;
-  $("hdi-bar").style.width = (ana.hdi / 10 * 100) + "%";
-  $("telemetry").textContent =
+  const hdiScore = $("hdi-score"); if (hdiScore) hdiScore.textContent = `HDI: ${ana.hdi.toFixed(1)} / 10.0`;
+  const hdiGrade = $("hdi-grade"); if (hdiGrade) hdiGrade.textContent = `Estimated Grade: ${ana.grade_band}`;
+  const hdiBar = $("hdi-bar"); if (hdiBar) hdiBar.style.width = (ana.hdi / 10 * 100) + "%";
+  const telemetry = $("telemetry"); if (telemetry) telemetry.textContent =
     `DIMENSIONS:   ${inf.w.toFixed(1)} W x ${inf.h.toFixed(1)} H x ${inf.t.toFixed(1)} D mm\n` +
     `MESH VOLUME:  ${inf.volume_cm3.toFixed(1)} cm³ (${inf.tris.toLocaleString("en-US")} tris)\n` +
     `--------------------------------------\n` +
@@ -1762,15 +1696,15 @@ function updateAnalysisPanel() {
   else if (b === "Jug") guide = "✅ High positive incut. Ideal for roof/steep overhangs (30° to 60°) and endurance circuits.";
   else if (t === "Custom") guide = `Custom ${d} hold "${inf.notes.split('"')[1] || "Custom"}" (${b}-style). Well balanced for vertical to 35° overhanging training boards.`;
   else guide = `Standard ${d} ${t}. Well balanced for vertical to 35° overhanging training boards.`;
-  $("guide").textContent = guide;
+  const guideEl = $("guide"); if (guideEl) guideEl.textContent = guide;
 }
 
 function onTypeChange() { redrawProfile(); regen(); }
 function onViewModeChange() {
   const key = $("mode-key");
   const m = st.viewMode;
-  if (m === "Heatmap") { key.textContent = "■ Red: High Grip (>0.6)  ■ Yellow: Friction  ■ Blue: None"; key.style.color = "#e53e3e"; }
-  else if (m === "Normals") { key.textContent = "■ View Normals: Blue (+Z View), Green (+Y Up), Red (+X)"; key.style.color = "#63b3ed"; }
+  if (!key) { redraw(); return; }
+  if (m === "Normals") { key.textContent = "■ View Normals: Blue (+Z View), Green (+Y Up), Red (+X)"; key.style.color = "#63b3ed"; }
   else if (m === "WorldNormals") { key.textContent = "■ World Normals: Green (Up Wall), Blue (Out), Red (Side)"; key.style.color = "#38a169"; }
   else { key.textContent = "Natural Textured Polyurethane Shading"; key.style.color = C_MUTED; }
   redraw();
@@ -1879,8 +1813,7 @@ function redraw(fast = false) {
   for (const f of faces) {
     const [a, b, d] = tris[f.idx];
     let col;
-    if (mode === "Heatmap") col = heatmapRGB(scores ? scores[f.idx] : 0, f.lit);
-    else if (mode === "Normals") col = normalRGB(f.nx, f.ny, f.nz);
+    if (mode === "Normals") col = normalRGB(f.nx, f.ny, f.nz);
     else if (mode === "WorldNormals") col = wnorm ? normalRGB(wnorm[f.idx * 3], wnorm[f.idx * 3 + 1], wnorm[f.idx * 3 + 2]) : [0, 255, 0];
     else col = [Math.trunc(br * f.lit), Math.trunc(bg * f.lit), Math.trunc(bb * f.lit)];
     const fill = rgb(col);
@@ -1893,7 +1826,6 @@ function redraw(fast = false) {
     c.strokeStyle = st.wire ? "#0b0f19" : fill; c.stroke();
   }
   drawGizmo(c, w, h);
-  drawGripMap(c, w, h);
 }
 
 function drawGizmo(c, w) {
@@ -1929,54 +1861,6 @@ function drawGizmo(c, w) {
   }
 }
 
-function drawGripMap(c, w, h) {
-  if (!st.showMap || !st.mesh) { st.mapClose = st.mapCard = null; return; }
-  const cw = 190, ch = 136, m = 14;
-  const bx1 = w - cw - m, by1 = h - ch - m, bx2 = w - m, by2 = h - m;
-  st.mapCard = [bx1, by1, bx2, by2];
-  c.fillStyle = "#151b26"; c.fillRect(bx1, by1, cw, ch);
-  c.strokeStyle = "#2d3748"; c.lineWidth = 1; c.strokeRect(bx1 + 0.5, by1 + 0.5, cw - 1, ch - 1);
-  const ff = getComputedStyle(document.body).fontFamily;
-  c.textBaseline = "middle"; c.textAlign = "left";
-  c.font = "bold 10px " + ff; c.fillStyle = "#edf2f7"; c.fillText("2D GRIP MAP", bx1 + 10, by1 + 12);
-  const tw = c.measureText("2D GRIP MAP").width;
-  c.font = "9px " + ff; c.fillStyle = "#718096"; c.fillText("(WALL FRONT)", bx1 + 16 + tw, by1 + 12);
-  const [x1, y1, x2, y2] = [bx2 - 20, by1 + 4, bx2 - 4, by1 + 20];
-  st.mapClose = [x1, y1, x2, y2];
-  c.font = "bold 10px " + ff; c.fillStyle = C_MUTED; c.textAlign = "center"; c.fillText("✕", (x1 + x2) / 2, (y1 + y2) / 2);
-
-  const [verts, tris] = st.meshFast || st.mesh;
-  const ana = st.analysisFast || st.analysis;
-  const scores = ana ? ana.scores : null;
-  const px1 = bx1 + 12, py1 = by1 + 24, px2 = bx2 - 12, py2 = by2 - 24;
-  let mnx = Infinity, mxx = -Infinity, mny = Infinity, mxy = -Infinity;
-  for (const p of verts) { if (p[0] < mnx) mnx = p[0]; if (p[0] > mxx) mxx = p[0]; if (p[1] < mny) mny = p[1]; if (p[1] > mxy) mxy = p[1]; }
-  const sc = Math.min((px2 - px1 - 6) / Math.max(1, mxx - mnx), (py2 - py1 - 6) / Math.max(1, mxy - mny));
-  const midX = (mxx + mnx) / 2, midY = (mxy + mny) / 2, cpx = (px1 + px2) / 2, cpy = (py1 + py2) / 2;
-  const step = tris.length > 4000 ? 2 : 1;
-  c.lineWidth = 0.8;
-  for (let idx = 0; idx < tris.length; idx += step) {
-    const [a, b, d] = tris[idx];
-    const va = verts[a], vb = verts[b], vd = verts[d];
-    if (Math.abs(va[2]) < 0.1 && Math.abs(vb[2]) < 0.1 && Math.abs(vd[2]) < 0.1) continue;
-    if ((vb[0] - va[0]) * (vd[1] - va[1]) - (vb[1] - va[1]) * (vd[0] - va[0]) <= 0) continue;
-    const col = rgb(heatmapRGB(scores ? scores[idx] : 0, 1.0));
-    c.beginPath();
-    c.moveTo(cpx + (va[0] - midX) * sc, cpy - (va[1] - midY) * sc);
-    c.lineTo(cpx + (vb[0] - midX) * sc, cpy - (vb[1] - midY) * sc);
-    c.lineTo(cpx + (vd[0] - midX) * sc, cpy - (vd[1] - midY) * sc);
-    c.closePath(); c.fillStyle = col; c.fill(); c.strokeStyle = col; c.stroke();
-  }
-  const lx1 = bx1 + 12, lx2 = bx2 - 12, ly1 = by2 - 14, ly2 = by2 - 8, lw = (lx2 - lx1) / 3;
-  c.fillStyle = "#194bb9"; c.fillRect(lx1, ly1, lw, ly2 - ly1);
-  c.fillStyle = "#f5d71e"; c.fillRect(lx1 + lw, ly1, lw, ly2 - ly1);
-  c.fillStyle = "#eb2323"; c.fillRect(lx1 + 2 * lw, ly1, lx2 - lx1 - 2 * lw, ly2 - ly1);
-  c.strokeStyle = "#4a5568"; c.strokeRect(lx1 + 0.5, ly1 + 0.5, lx2 - lx1 - 1, ly2 - ly1 - 1);
-  c.font = "8px " + ff; c.textBaseline = "middle";
-  c.fillStyle = "#63b3ed"; c.textAlign = "left"; c.fillText("0: Blue (None)", lx1, ly1 - 6);
-  c.fillStyle = "#e53e3e"; c.textAlign = "right"; c.fillText("Red (High Grip)", lx2, ly1 - 6);
-}
-
 // ---------------------------------------------------------------------------
 // Camera controls
 // ---------------------------------------------------------------------------
@@ -1984,7 +1868,6 @@ function setView(az, tilt) { st.az = az; st.tilt = tilt; st.panX = st.panY = 0; 
 function resetView() { st.az = 0.6; st.tilt = 0.5; st.zoom = 1; st.panX = st.panY = 0; redraw(); }
 function resetPan() { st.panX = st.panY = 0; redraw(); }
 function toggleWire() { st.wire = !st.wire; syncToolbar(); redraw(); }
-function toggleMap() { st.showMap = !st.showMap; syncToolbar(); redraw(); }
 let zoomJob = null;
 function zoomStep(f) {
   st.zoom = clamp(st.zoom * f, 0.3, 5.0);
@@ -2007,15 +1890,7 @@ function zoomStep(f) {
       pinch = { d: Math.hypot(a[0] - b[0], a[1] - b[1]), mx: (a[0] + b[0]) / 2, my: (a[1] + b[1]) / 2 };
       drag = null; return;
     }
-    if (st.mapClose) {
-      const [x1, y1, x2, y2] = st.mapClose;
-      if (x >= x1 && x <= x2 && y >= y1 && y <= y2) { st.showMap = false; syncToolbar(); redraw(); return; }
-    }
     for (const [gx, gy, gr, fn] of st.gizmoHit) if (Math.hypot(x - gx, y - gy) <= gr) { fn(); return; }
-    if (st.mapCard) {
-      const [x1, y1, x2, y2] = st.mapCard;
-      if (x >= x1 && x <= x2 && y >= y1 && y <= y2) return;
-    }
     drag = { x, y, pan: e.button === 2 || e.button === 1 || e.shiftKey };
     cv.setPointerCapture(e.pointerId);
     cv.classList.add("dragging");
@@ -2147,12 +2022,16 @@ const GRADE_COLORS = { 0: "#48bb78", 1: "#48bb78", 2: "#38a169", 3: "#ecc94b", 4
   7: "#e53e3e", 8: "#c53030", 9: "#9b2c2c", 10: "#805ad5", 11: "#6b46c1", 12: "#553c9a" };
 
 function onRouteGradeChange() {
+  const vGrade = $("v-grade"); if (!vGrade) return;
   const g = st.routeGrade;
-  $("v-grade").textContent = `Grade: ${GRADE_NAMES[g] || "V" + g}`;
-  $("v-grade").style.color = GRADE_COLORS[g] || "#ecc94b";
+  vGrade.textContent = `Grade: ${GRADE_NAMES[g] || "V" + g}`;
+  vGrade.style.color = GRADE_COLORS[g] || "#ecc94b";
   generateRoute();
 }
 function generateRoute() {
+  const wall = $("wall");
+  const routeInfo = $("route-info");
+  if (!wall && !routeInfo) return;
   st.route = generateBoulderRoute(st.routeGrade, st.routeAngle, st.routeCount, st.routeSeed);
   st.selRoute = 0;
   redrawWall(); updateRouteInfo();
@@ -2164,7 +2043,7 @@ function wallGeom(w, h) {
 }
 function redrawWall() {
   const cv = $("wall");
-  if (!cv.offsetParent) return;
+  if (!cv || !cv.offsetParent) return;
   const [c, w, h] = sizeCanvas(cv, 200);
   c.clearRect(0, 0, w, h);
   const { scale, ox, oy, ww, wh } = wallGeom(w, h);
@@ -2197,7 +2076,8 @@ function redrawWall() {
 }
 function onWallClick(e) {
   if (!st.route.length) return;
-  const cv = $("wall"), r = cv.getBoundingClientRect();
+  const cv = $("wall"); if (!cv) return;
+  const r = cv.getBoundingClientRect();
   const x = e.clientX - r.left, y = e.clientY - r.top;
   const { scale, ox, oy } = wallGeom(cv.clientWidth, cv.clientHeight);
   let best = null, minD = 18;
@@ -2209,10 +2089,11 @@ function onWallClick(e) {
 }
 function updateRouteInfo() {
   if (!st.route.length) return;
+  const info = $("route-info"); if (!info) return;
   const hd = st.route[st.selRoute];
   const total = st.route.reduce((s, h) => s + h.reach_cm, 0);
   const maxReach = st.route.length > 1 ? Math.max(...st.route.slice(1).map((h) => h.reach_cm)) : 0;
-  $("route-info").textContent =
+  info.textContent =
     `SELECTED: Hold #${hd.idx + 1} (${hd.role})\n` +
     `Type:     ${hd.type} (${hd.diff} Difficulty)\n` +
     `Seed:     ${hd.seed}\n` +
@@ -2246,17 +2127,8 @@ async function exportRoutePackage() {
 }
 
 // ---------------------------------------------------------------------------
-// CUSTOM HOLD: prompt, profile editor, parameters, library
+// CUSTOM HOLD: profile editor, parameters, library
 // ---------------------------------------------------------------------------
-const EXAMPLES = [
-  "wide two-hand rail, 30 mm deep, slightly incut lip",
-  "tiny sharp crimp, 8 mm deep",
-  "2 finger pocket, 25mm deep pocket",
-  "huge friendly sloper, smooth",
-  "double lip hold for gastons and underclings",
-  "stepped ridges edge, 160 mm tall",
-  "horn to pinch, 90mm deep",
-];
 function saveWorking() { if (st.custom) LS.set(K_CUSTOM, st.custom); }
 function activateCustom() {
   if (st.htype !== "Custom") st.htype = "Custom";
@@ -2272,23 +2144,6 @@ function customChanged(fast = false) {
 }
 
 function buildCustomWidgets() {
-  const chips = $("chips");
-  for (const ex of EXAMPLES) {
-    const b = document.createElement("button"); b.className = "chip"; b.textContent = ex; b.type = "button";
-    b.onclick = () => { $("prompt").value = ex; $("prompt").focus(); };
-    chips.appendChild(b);
-  }
-  $("prompt").addEventListener("keydown", (e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) createFromPrompt(); });
-  $("btn-prompt").onclick = createFromPrompt;
-  document.querySelectorAll('input[name="engine"]').forEach((r) => r.addEventListener("change", () => {
-    if (r.value === "ai" && r.checked) $("ai-settings").open = true;
-  }));
-  const savedKey = LS.get(K_KEY);
-  if (savedKey) { $("api-key").value = savedKey; $("api-remember").checked = true; }
-  const savedModel = LS.get(K_MODEL);
-  if (savedModel) $("api-model").value = savedModel;
-  $("api-remember").addEventListener("change", (e) => { if (!e.target.checked) LS.del(K_KEY); });
-
   const bsel = $("behaves");
   for (const t of HOLD_TYPES) bsel.add(new Option(t, t));
   bsel.addEventListener("change", () => {
@@ -2296,7 +2151,7 @@ function buildCustomWidgets() {
     if (s.kind === "profile") { s.base = bsel.value; customChanged(); }
   });
   const sf = $("start-from");
-  for (const t of HOLD_TYPES.filter((x) => x !== "Pocket")) sf.add(new Option(`${t} profile`, t));
+  for (const t of HOLD_TYPES) sf.add(new Option(t === "Pocket" ? "Pocket (tuned)" : `${t} profile`, t));
   for (const [k, T] of Object.entries(SHAPE_TEMPLATES)) sf.add(new Option(T.label.split(" (")[0], "tpl:" + k));
   $("btn-reset-custom").onclick = () => {
     const v = sf.value;
@@ -2305,12 +2160,14 @@ function buildCustomWidgets() {
       const k = v.slice(4), T = SHAPE_TEMPLATES[k];
       spec = { kind: "profile", base: T.base, name: T.label.split(" (")[0], summary: T.label, W: T.W, H: T.H, D: T.D, p: T.p,
                profile: k === "undercling" ? undercling() : T.pts.map((p) => p.slice()), roughness: null };
+    } else if (v === "Pocket") {
+      const params = JSON.parse(JSON.stringify(SPECS.Pocket[st.diff]));
+      spec = { kind: "tuned", base: "Pocket", name: "Custom Pocket", summary: `Tuned ${st.diff} Pocket hold.`, params, roughness: null };
     } else {
       spec = { kind: "profile", base: v, name: `Custom ${v}`, summary: `Free-form ${v} profile you can reshape.`,
                ...freeformFromBase(v, st.diff), roughness: null };
     }
     st.custom = sanitizeSpec(spec); st.selPt = -1;
-    $("understood").innerHTML = "";
     syncCustomPanel(); customChanged();
   };
   $("btn-unlock").onclick = () => {
@@ -2427,9 +2284,11 @@ function syncCustomPanel() {
   $("btn-unlock").dataset.tip = s.base === "Pocket" && s.kind === "tuned"
     ? "Pockets are carved across the width, so they can't be drawn as a side profile. Adjust them with the sliders below."
     : "Convert this tuned shape into free-form control points you can drag";
-  $("editor-hint").textContent = s.kind === "tuned"
-    ? "This hold uses the tuned generator. Adjust it with the sliders below, or unlock the free-form profile to drag its shape by hand."
-    : "Drag points to reshape the side profile. Double-click a line to add a point. Select a point and press Delete to remove it.";
+  $("editor-hint").textContent = s.kind === "tuned" && s.base === "Pocket"
+    ? "Pocket geometry spans the hold's width. Adjust it with the sliders below; it cannot be edited in the 2D profile editor."
+    : s.kind === "tuned"
+      ? "This hold uses the tuned generator. Adjust it with the sliders below, or unlock the free-form profile to drag its shape by hand."
+      : "Drag points to reshape the side profile. Double-click a line to add a point. Select a point and press Delete to remove it.";
 
   const box = $("param-sliders"); box.innerHTML = "";
   const P = s.kind === "tuned" ? s.params : s;
@@ -2466,65 +2325,6 @@ function syncCornerSlider() {
   if (ok) { $("corner").value = s.profile[st.selPt][2]; $("corner-val").textContent = s.profile[st.selPt][2].toFixed(2); }
   else $("corner-val").textContent = "--";
 }
-
-// ---- prompt -> spec ---------------------------------------------------------
-async function createFromPrompt() {
-  const text = $("prompt").value.trim();
-  const out = $("understood");
-  const engine = document.querySelector('input[name="engine"]:checked').value;
-  out.className = "understood";
-  if (!text) { out.className = "understood err"; out.innerHTML = "<b>Describe the hold first.</b> Try one of the examples above."; return; }
-  const btn = $("btn-prompt");
-  try {
-    if (engine === "ai") {
-      const key = $("api-key").value.trim(), model = $("api-model").value.trim() || "claude-sonnet-5-5";
-      if (!key) {
-        $("ai-settings").open = true;
-        out.className = "understood err";
-        out.innerHTML = "<b>Add your Anthropic API key</b> in Claude AI settings, or switch to the built-in interpreter.";
-        return;
-      }
-      if ($("api-remember").checked) LS.set(K_KEY, key);
-      LS.set(K_MODEL, model);
-      btn.disabled = true; btn.textContent = "Asking Claude...";
-      setStatus("Asking Claude to design the hold...");
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01",
-                   "anthropic-dangerous-direct-browser-access": "true" },
-        body: JSON.stringify({ model, max_tokens: 1500, system: AI_SYSTEM_PROMPT,
-                               messages: [{ role: "user", content: `Hold description: ${text}\nCurrent difficulty setting: ${st.diff}` }] }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        const msg = (data.error && data.error.message) || res.statusText;
-        if (res.status === 401) throw new Error("The API key was rejected. Check it in Claude AI settings.");
-        if (res.status === 404) throw new Error(`Model "${model}" was not found. Check the model name in Claude AI settings.`);
-        throw new Error(`Claude API error ${res.status}: ${msg}`);
-      }
-      const reply = (data.content || []).filter((b) => b.type === "text").map((b) => b.text).join("\n");
-      st.custom = parseAiJson(reply);
-      out.innerHTML = `<b>Claude designed:</b> ${escapeHtml(st.custom.summary || st.custom.name)} <span class="muted">(${st.custom.kind === "tuned" ? "tuned " + st.custom.base : "free-form profile, " + st.custom.base + " grip"})</span>`;
-    } else {
-      const r = interpretPrompt(text, st.diff);
-      st.custom = r.spec;
-      st.diff = r.difficulty;
-      out.innerHTML = `<b>Understood:</b> ${escapeHtml(r.understood.join("; "))}`;
-    }
-    st.selPt = -1;
-    st.seed = st.seed || "1234";
-    activateCustom(); syncCustomPanel(); regen(); saveWorking();
-    setStatus(`Created custom hold "${st.custom.name}". Fine-tune it below or export it from the Hold Design tab.`, C_SUCCESS);
-  } catch (err) {
-    out.className = "understood err";
-    const net = err instanceof TypeError ? "Could not reach api.anthropic.com. Check your connection, or use the built-in interpreter." : err.message;
-    out.innerHTML = `<b>Could not create the hold.</b> ${escapeHtml(net)}`;
-    setStatus("Custom hold not created.", "#f56565");
-  } finally {
-    btn.disabled = false; btn.textContent = "✨ Create Hold from Prompt";
-  }
-}
-function escapeHtml(s) { return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
 
 // ---- profile editor ---------------------------------------------------------
 let edView = null;           // frozen mapping during drag
@@ -2685,15 +2485,21 @@ function deleteSelectedPoint() {
 // ---------------------------------------------------------------------------
 function boot() {
   const saved = LS.get(K_CUSTOM);
-  if (saved) { try { st.custom = sanitizeSpec(saved); } catch (e) { st.custom = null; } }
+  if (saved) {
+    try {
+      st.custom = sanitizeSpec(saved);
+      if (saved.kind !== st.custom.kind) LS.set(K_CUSTOM, st.custom);
+    } catch (e) { st.custom = null; }
+  }
   buildWidgets();
   buildCustomWidgets();
   syncRadios(); syncToolbar(); updateResLabel();
-  onRouteGradeChange();
+  if ($("v-grade")) onRouteGradeChange();
   regen();
   syncCustomPanel();
   const ro = new ResizeObserver(() => { redraw(); redrawProfile(); redrawWall(); drawEditor(); });
-  ro.observe($("view")); ro.observe($("tab-design")); ro.observe($("tab-custom")); ro.observe($("tab-route"));
+  ro.observe($("view")); ro.observe($("tab-design")); ro.observe($("tab-custom"));
+  if ($("tab-route")) ro.observe($("tab-route"));
   setTimeout(() => { redrawProfile(); redraw(); }, 40);
 }
 boot();
