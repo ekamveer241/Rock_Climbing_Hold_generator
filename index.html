@@ -23,12 +23,21 @@
   :focus-visible { outline: 2px solid #63b3ed; outline-offset: 1px; }
 
   /* ---------- sidebar & tabs ---------- */
-  .sidebar { width: 376px; flex: none; display: flex; flex-direction: column; min-height: 0; }
+  .sidebar { width: 376px; flex: none; display: flex; flex-direction: column; min-height: 0; position: relative; }
   .tabs { display: flex; gap: 2px; }
   .tab { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; background: var(--card); color: var(--muted);
          border: 0; border-radius: 3px 3px 0 0; padding: 6px 2px; font-weight: 700; font-size: 10.5px; cursor: pointer; white-space: nowrap; }
   .tab[aria-selected="true"] { background: var(--panel); color: #fff; }
   .tab:hover:not([aria-selected="true"]) { color: var(--fg); }
+  .custom-tab-hint { position: absolute; top: 34px; right: 6px; z-index: 12; display: flex; align-items: flex-start; gap: 8px;
+                     width: min(280px, calc(100% - 12px)); padding: 9px; background: var(--card); border: 1px solid var(--accent);
+                     border-radius: 3px; box-shadow: 0 6px 18px #0008; color: var(--fg); font-size: 11px; }
+  .custom-tab-hint[hidden] { display: none; }
+  .custom-tab-hint::before { content: ""; position: absolute; top: -6px; right: 48px; width: 10px; height: 10px;
+                             transform: rotate(45deg); background: var(--card); border-top: 1px solid var(--accent);
+                             border-left: 1px solid var(--accent); }
+  .custom-tab-hint span { flex: 1; }
+  .custom-tab-hint button { flex: none; padding: 2px 6px; }
   .panel { background: var(--panel); padding: 10px 12px 14px; overflow-y: auto; flex: 1; min-height: 0; }
   .panel[hidden] { display: none; }
 
@@ -76,6 +85,9 @@
   .slider-row { margin: 4px 0 2px; }
   .slider-row .row { justify-content: space-between; }
   .slider-row .val { font-family: var(--mono); color: #fff; font-size: 11px; }
+  .profile-preview { position: sticky; top: 0; z-index: 4; margin: -10px -12px 6px; padding: 10px 12px 6px;
+                     background: var(--panel); border-bottom: 1px solid var(--border); }
+  .profile-preview h3 { margin-top: 0; }
   details.ai { margin: 6px 0; }
   details.ai summary { cursor: pointer; color: var(--muted); font-size: 11px; }
   details.ai .card { margin-top: 4px; }
@@ -120,8 +132,12 @@
 <div id="app">
   <aside class="sidebar">
     <div class="tabs" role="tablist">
-      <button class="tab" role="tab" data-tab="design" aria-selected="true">🛠️ Hold Design</button>
-      <button class="tab" role="tab" data-tab="custom" aria-selected="false">✨ Custom</button>
+      <button class="tab" role="tab" data-tab="design" aria-selected="true">🛠️ Basic Hold Design</button>
+      <button class="tab" role="tab" data-tab="custom" aria-selected="false">✨ Custom Hold Design</button>
+    </div>
+    <div class="custom-tab-hint" id="custom-tab-hint" role="status" hidden>
+      <span>Use Custom Hold Design to start from a shape, adjust its profile and size, and save your design.</span>
+      <button class="btn small" id="dismiss-custom-hint" type="button">Got it</button>
     </div>
 
     <!-- ============ TAB 1: HOLD DESIGN ============ -->
@@ -134,9 +150,6 @@
 
       <h3>HOLD CLASSIFICATION</h3>
       <div class="grid2" id="htype-box"></div>
-      <label class="opt" style="margin-top:2px" data-tip="Your own hold, created from a profile in the ✨ Custom tab">
-        <input type="radio" name="htype" value="Custom"> Custom ✨ <span class="muted" id="custom-name-hint"></span>
-      </label>
 
       <h3>CROSS-SECTION PROFILE (SIDE VIEW)</h3>
       <canvas id="profile" class="mini" height="110" style="height:110px" data-tip="Side-view cross-section loft (Y-Z plane). Left border represents wall mounting plane (Z=0)."></canvas>
@@ -157,34 +170,14 @@
       </div>
     </section>
 
-    <!-- ============ TAB 2: ROUTE SETTER ============ -->
-   <!-- <section class="panel" id="tab-route" role="tabpanel" hidden>
-      <h3>TARGET DIFFICULTY (V-SCALE)</h3>
-      <div class="vgrade" id="v-grade">Grade: V3 (Intermediate)</div>
-      <input type="range" id="v-slider" min="0" max="12" step="1" value="3">
-      <div class="legend3 muted gap-b"><span>V0 (Intro)</span><span>V6 (Advanced)</span><span>V12+ (Elite)</span></div>
-
-      <h3>WALL ANGLE &amp; PROFILE</h3>
-      <div id="angle-box" class="gap-b"></div>
-
-      <h3>BOULDER SEQUENCE (2.4m x 3.6m WALL)</h3>
-      <canvas id="wall" class="mini" height="200" style="height:200px" data-tip="Click any hold on the wall to load its 3D procedural mesh into the 3D viewport!"></canvas>
-
-      <h3>SETTER'S BETA &amp; HOLD DETAILS</h3>
-      <pre class="telemetry" id="route-info"></pre>
-
-      <button class="btn action block" id="btn-route-regen" data-tip="Generates a fresh sequence of holds following routesetting movement flow">🎲 Re-Set Route Variation</button>
-      <button class="btn block" id="btn-route-load">🔍 Load Selected Hold in 3D View</button>
-      <button class="btn block" id="btn-route-export" data-tip="Saves all procedural holds in this climb into a ready-to-3D-print ZIP folder">📦 Export All Route STLs to Folder...</button>
-    </section> -->
-
     <!-- ============ TAB 4: CUSTOM HOLD ============ -->
     <section class="panel" id="tab-custom" role="tabpanel" hidden>
+      <div class="profile-preview">
       <h3>PROFILE EDITOR <span class="badge" id="kind-badge"></span></h3>
       <canvas id="editor" class="mini" height="210" style="height:210px" tabindex="0" aria-label="Profile editor"></canvas>
+      </div>
       <div class="note" id="editor-hint">Drag points to reshape the side profile. Double-click a line to add a point. Select a point and press Delete to remove it.</div>
       <div class="lockbar">
-        <button class="btn small grow" id="btn-unlock" data-tip="Convert this tuned shape into free-form control points you can drag">Unlock free-form profile</button>
         <button class="btn small grow" id="btn-delpt">Remove point</button>
       </div>
       <div class="lockbar">
@@ -199,10 +192,6 @@
       <h3>SHAPE &amp; SIZE</h3>
       <label class="muted" for="cust-name">Name</label>
       <input type="text" id="cust-name" maxlength="40">
-      <div style="margin-top:6px">
-        <label class="muted" for="behaves">Grip behaves like (used for biomechanics)</label>
-        <select id="behaves"></select>
-      </div>
       <div id="param-sliders"></div>
       <div class="slider-row">
         <div class="row"><span>Surface texture</span><span class="val" id="rough-val">--</span></div>
@@ -1394,6 +1383,7 @@ const LS = {
   del(k) { try { localStorage.removeItem(k); } catch (e) { /* ignore */ } },
 };
 const K_CUSTOM = "holdstudio.custom.v1", K_LIB = "holdstudio.library.v1", K_KEY = "holdstudio.apikey", K_MODEL = "holdstudio.model";
+const K_CUSTOM_HINT = "holdstudio.customHintSeen.v1";
 
 const st = {
   seed: "1234", diff: "Medium", htype: "Jug", res: RES_DEFAULT, wire: false, viewMode: "Solid",
@@ -1489,6 +1479,18 @@ $("modal").addEventListener("keydown", (e) => {
 function buildWidgets() {
   // tabs
   document.querySelectorAll(".tab").forEach((t) => t.addEventListener("click", () => selectTab(t.dataset.tab)));
+  const customHint = $("custom-tab-hint");
+  const showCustomHint = () => {
+    if (LS.get(K_CUSTOM_HINT, false)) return;
+    customHint.hidden = false;
+    LS.set(K_CUSTOM_HINT, true);
+  };
+  const designPanel = $("tab-design");
+  for (const eventName of ["pointerdown", "keydown", "input", "change", "focusin", "wheel"]) {
+    designPanel.addEventListener(eventName, showCustomHint, { once: true });
+  }
+  $("dismiss-custom-hint").addEventListener("click", () => { customHint.hidden = true; });
+  document.querySelector('[data-tab="custom"]').addEventListener("click", () => { customHint.hidden = true; });
 
   // hold types: two columns like the original (col1 = even index, col2 = odd)
   const box = $("htype-box");
@@ -1500,7 +1502,7 @@ function buildWidgets() {
   });
   box.append(col1, col2);
   document.querySelectorAll('input[name="htype"]').forEach((r) => r.addEventListener("change", () => {
-    st.htype = r.value; onTypeChange();
+    st.htype = r.value; pendingCustomBase = r.value; onTypeChange();
   }));
 
   const db = $("diff-box");
@@ -1603,18 +1605,29 @@ function buildWidgets() {
   });
 }
 
+let pendingCustomBase = null;
 function selectTab(name) {
   document.querySelectorAll(".tab").forEach((t) => t.setAttribute("aria-selected", t.dataset.tab === name ? "true" : "false"));
   for (const n of ["design", "custom"]) $("tab-" + n).hidden = n !== name;
   if (name === "design") redrawProfile();
-  if (name === "custom") { syncCustomPanel(); drawEditor(); }
+  if (name === "custom") {
+    if (pendingCustomBase) {
+      const sf = $("start-from");
+      if (Array.from(sf.options).some((option) => option.value === pendingCustomBase)) {
+        sf.value = pendingCustomBase;
+        $("btn-reset-custom").click();
+      }
+      pendingCustomBase = null;
+    }
+    syncCustomPanel(); drawEditor();
+  }
 }
 
 function syncRadios() {
-  document.querySelectorAll('input[name="htype"]').forEach((r) => (r.checked = r.value === st.htype));
+  const selectedType = st.htype === "Custom" && st.custom ? st.custom.base : st.htype;
+  document.querySelectorAll('input[name="htype"]').forEach((r) => (r.checked = r.value === selectedType));
   document.querySelectorAll('input[name="diff"]').forEach((r) => (r.checked = r.value === st.diff));
   $("seed").value = st.seed;
-  $("custom-name-hint").textContent = st.custom ? `(${st.custom.name})` : "";
 }
 function syncToolbar() {
   const tbWire = $("tb-wire"); if (tbWire) tbWire.classList.toggle("on", st.wire);
@@ -2144,12 +2157,6 @@ function customChanged(fast = false) {
 }
 
 function buildCustomWidgets() {
-  const bsel = $("behaves");
-  for (const t of HOLD_TYPES) bsel.add(new Option(t, t));
-  bsel.addEventListener("change", () => {
-    const s = customSpec();
-    if (s.kind === "profile") { s.base = bsel.value; customChanged(); }
-  });
   const sf = $("start-from");
   for (const t of HOLD_TYPES) sf.add(new Option(t === "Pocket" ? "Pocket (tuned)" : `${t} profile`, t));
   for (const [k, T] of Object.entries(SHAPE_TEMPLATES)) sf.add(new Option(T.label.split(" (")[0], "tpl:" + k));
@@ -2170,14 +2177,6 @@ function buildCustomWidgets() {
     st.custom = sanitizeSpec(spec); st.selPt = -1;
     syncCustomPanel(); customChanged();
   };
-  $("btn-unlock").onclick = () => {
-    const s = customSpec();
-    if (s.kind !== "tuned" || s.base === "Pocket") return;
-    const ff = freeformFromBase(s.base, st.diff, s.params);
-    st.custom = sanitizeSpec({ ...s, kind: "profile", ...ff });
-    syncCustomPanel(); customChanged();
-    setStatus("Profile unlocked. Drag the points in the editor to reshape it.", C_SUCCESS);
-  };
   $("btn-delpt").onclick = deleteSelectedPoint;
   $("corner").addEventListener("input", (e) => {
     const s = customSpec();
@@ -2189,7 +2188,6 @@ function buildCustomWidgets() {
   $("corner").addEventListener("change", () => customChanged(false));
   $("cust-name").addEventListener("input", (e) => {
     customSpec().name = e.target.value.replace(/[^\w\s\-+.()#&']/g, "").slice(0, 40) || "Custom Hold";
-    $("custom-name-hint").textContent = `(${customSpec().name})`;
     saveWorking();
   });
   $("cust-name").addEventListener("change", () => customChanged());
@@ -2278,16 +2276,10 @@ function syncCustomPanel() {
   const s = customSpec();
   $("kind-badge").textContent = s.kind === "tuned" ? `tuned ${s.base}` : "free-form";
   $("cust-name").value = s.name;
-  const bsel = $("behaves");
-  bsel.value = s.base; bsel.disabled = s.kind === "tuned";
-  $("btn-unlock").disabled = s.kind !== "tuned" || s.base === "Pocket";
-  $("btn-unlock").dataset.tip = s.base === "Pocket" && s.kind === "tuned"
-    ? "Pockets are carved across the width, so they can't be drawn as a side profile. Adjust them with the sliders below."
-    : "Convert this tuned shape into free-form control points you can drag";
   $("editor-hint").textContent = s.kind === "tuned" && s.base === "Pocket"
     ? "Pocket geometry spans the hold's width. Adjust it with the sliders below; it cannot be edited in the 2D profile editor."
     : s.kind === "tuned"
-      ? "This hold uses the tuned generator. Adjust it with the sliders below, or unlock the free-form profile to drag its shape by hand."
+      ? "This hold uses the tuned generator. Adjust it with the sliders below."
       : "Drag points to reshape the side profile. Double-click a line to add a point. Select a point and press Delete to remove it.";
 
   const box = $("param-sliders"); box.innerHTML = "";
