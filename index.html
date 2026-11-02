@@ -125,7 +125,7 @@
     #app { flex-direction: column; height: auto; }
     .sidebar { width: auto; order: 2; }
     .panel { max-height: none; overflow: visible; }
-    #tab-custom { display: block; overflow: visible; }
+    #tab-custom:not([hidden]) { display: block; overflow: visible; }
     .custom-controls { overflow: visible; }
     .viewport { order: 1; height: 62vh; min-height: 380px; flex: none; }
     .gizmo-bar { top: 88px; right: 8px; }
