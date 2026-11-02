@@ -1,0 +1,2703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>Climbing Hold Generator &amp; Biomechanics Studio</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧗</text></svg>">
+<style>
+  :root {
+    --bg: #1a202c; --panel: #2d3748; --card: #222a36; --fg: #edf2f7; --muted: #a0aec0;
+    --accent: #3182ce; --accent-hi: #2b6cb0; --success: #38a169; --border: #3d4a5d;
+    --view: #11161f; --status: #0d1117; --danger: #f56565;
+    --font: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Roboto, Arial, sans-serif;
+    --mono: Consolas, "SF Mono", Menlo, "Cascadia Mono", "DejaVu Sans Mono", monospace;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); font: 12px/1.4 var(--font); }
+  body { padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); }
+  #app { display: flex; gap: 8px; padding: 8px; height: 100%; min-height: 560px; }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid #63b3ed; outline-offset: 1px; }
+
+  /* ---------- sidebar & tabs ---------- */
+  .sidebar { width: 376px; flex: none; display: flex; flex-direction: column; min-height: 0; }
+  .tabs { display: flex; gap: 2px; }
+  .tab { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; background: var(--card); color: var(--muted);
+         border: 0; border-radius: 3px 3px 0 0; padding: 6px 2px; font-weight: 700; font-size: 10.5px; cursor: pointer; white-space: nowrap; }
+  .tab[aria-selected="true"] { background: var(--panel); color: #fff; }
+  .tab:hover:not([aria-selected="true"]) { color: var(--fg); }
+  .panel { background: var(--panel); padding: 10px 12px 14px; overflow-y: auto; flex: 1; min-height: 0; }
+  .panel[hidden] { display: none; }
+
+  h3 { font-size: 12px; font-weight: 700; color: #fff; margin: 10px 0 4px; letter-spacing: 0; }
+  h3:first-child { margin-top: 0; }
+  .muted { color: var(--muted); font-size: 11px; }
+  .row { display: flex; gap: 6px; align-items: center; }
+  .grow { flex: 1; min-width: 0; }
+  .card { background: var(--card); border: 1px solid var(--border); padding: 8px; }
+  .gap-b { margin-bottom: 8px; }
+
+  input[type="text"], input[type="password"], input[type="number"], textarea, select {
+    background: var(--card); border: 1px solid #4a5568; color: #fff; padding: 4px 6px; border-radius: 2px; width: 100%; }
+  textarea { resize: vertical; min-height: 64px; line-height: 1.4; }
+  select option { background: var(--card); }
+  input[type="radio"], input[type="checkbox"], input[type="range"] { accent-color: var(--accent); }
+  input[type="range"] { width: 100%; margin: 2px 0; }
+  label.opt { display: flex; align-items: center; gap: 6px; padding: 1px 0; cursor: pointer; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; }
+  .inline-opts { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+
+  .btn { background: #4a5568; color: #fff; border: 0; border-radius: 2px; padding: 5px 10px; cursor: pointer; font-weight: 600; }
+  .btn:hover { background: #56637a; }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .btn.action { background: var(--accent); }
+  .btn.action:hover { background: var(--accent-hi); }
+  .btn.block { display: block; width: 100%; margin: 3px 0; }
+  .btn.small { padding: 3px 8px; font-size: 11px; }
+
+  canvas.mini { display: block; width: 100%; background: var(--card); border: 1px solid var(--border); }
+  .progress { height: 10px; background: var(--card); border: 1px solid var(--border); overflow: hidden; }
+  .progress > div { height: 100%; width: 0; background: var(--accent); transition: width .15s; }
+  .progress.green > div { background: var(--success); }
+
+  pre.telemetry { margin: 0 0 10px; white-space: pre-wrap; font: 11px/1.45 var(--mono); color: var(--fg);
+                  background: var(--card); border: 1px solid var(--border); padding: 8px; }
+  .guide { background: var(--card); border: 1px solid var(--border); padding: 8px; color: var(--muted); font-size: 11px; }
+  .modekey { background: var(--card); text-align: center; font-weight: 700; font-size: 10.5px; padding: 4px; margin: 4px 0 6px; }
+  .hdi-score { font-size: 16px; font-weight: 700; color: #fff; }
+  .hdi-grade { font-weight: 700; color: var(--accent); margin: 2px 0 6px; }
+  .vgrade { background: var(--card); text-align: center; font-weight: 700; font-size: 13px; padding: 4px; margin-bottom: 4px; }
+  .legend3 { display: flex; justify-content: space-between; }
+
+  /* custom tab */
+  .chips { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0; }
+  .chip { background: var(--card); border: 1px solid var(--border); color: var(--fg); border-radius: 10px; padding: 2px 8px;
+          font-size: 11px; cursor: pointer; }
+  .chip:hover { border-color: var(--accent); }
+  .understood { font-size: 11px; color: var(--fg); margin-top: 6px; }
+  .understood b { color: #9ae6b4; }
+  .understood.err b { color: var(--danger); }
+  .slider-row { margin: 4px 0 2px; }
+  .slider-row .row { justify-content: space-between; }
+  .slider-row .val { font-family: var(--mono); color: #fff; font-size: 11px; }
+  details.ai { margin: 6px 0; }
+  details.ai summary { cursor: pointer; color: var(--muted); font-size: 11px; }
+  details.ai .card { margin-top: 4px; }
+  .note { font-size: 10.5px; color: var(--muted); margin-top: 4px; }
+  .lockbar { display: flex; gap: 6px; align-items: center; margin: 4px 0; }
+  .badge { display: inline-block; font-size: 10px; padding: 1px 6px; border-radius: 8px; background: #553c9a; color: #fff; }
+
+  /* ---------- viewport ---------- */
+  .viewport { flex: 1; position: relative; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+  #view { flex: 1; width: 100%; min-height: 0; background: var(--view); display: block; touch-action: none; cursor: grab; }
+  #view.dragging { cursor: grabbing; }
+  .status { background: var(--status); color: var(--muted); font-size: 11px; padding: 4px 10px; white-space: nowrap;
+            overflow: hidden; text-overflow: ellipsis; }
+  .gizmo-bar { position: absolute; right: 14px; top: 95px; background: var(--bg); padding: 4px; border: 1px solid var(--panel);
+               display: flex; flex-direction: column; gap: 2px; }
+  .gizmo-bar button { background: var(--panel); color: var(--fg); border: 0; font-size: 10px; font-weight: 700; padding: 3px 6px;
+                      cursor: pointer; text-align: left; white-space: nowrap; }
+  .gizmo-bar button:hover, .gizmo-bar button.on { background: var(--accent); color: #fff; }
+
+  /* ---------- tooltip & modal ---------- */
+  #tooltip { position: fixed; z-index: 50; pointer-events: none; background: #2d3748; color: #f7fafc; border: 1px solid #4a5568;
+             font-size: 11px; padding: 4px 7px; max-width: 280px; display: none; white-space: pre-line; }
+  .modal-back { position: fixed; inset: 0; background: rgba(0,0,0,.55); display: flex; align-items: center; justify-content: center; z-index: 40; }
+  .modal-back[hidden] { display: none; }
+  .modal { background: var(--panel); border: 1px solid var(--border); width: min(380px, 92vw); padding: 16px 18px; }
+  .modal h4 { margin: 0 0 8px; font-size: 13px; color: #fff; }
+  .modal p { margin: 0 0 10px; white-space: pre-line; color: var(--fg); }
+  .modal .row { justify-content: flex-end; margin-top: 10px; }
+
+  @media (max-width: 860px) {
+    html, body { height: auto; }
+    #app { flex-direction: column; height: auto; }
+    .sidebar { width: auto; order: 2; }
+    .panel { max-height: none; overflow: visible; }
+    .viewport { order: 1; height: 62vh; min-height: 380px; flex: none; }
+    .gizmo-bar { top: 88px; right: 8px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .progress > div { transition: none; } }
+</style>
+</head>
+<body>
+<div id="app">
+  <aside class="sidebar">
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" data-tab="design" aria-selected="true">🛠️ Hold Design</button>
+      <button class="tab" role="tab" data-tab="analysis" aria-selected="false">📊 Biomechanics</button>
+      <button class="tab" role="tab" data-tab="route" aria-selected="false">🧗 Route Setter</button>
+      <button class="tab" role="tab" data-tab="custom" aria-selected="false">✨ Custom</button>
+    </div>
+
+    <!-- ============ TAB 1: HOLD DESIGN ============ -->
+    <section class="panel" id="tab-design" role="tabpanel">
+      <h3>SEED &amp; VARIATION</h3>
+      <div class="row gap-b">
+        <input type="text" id="seed" class="grow" value="1234" data-tip="Deterministic seed value. Type any number or word to vary shape.">
+        <button class="btn" id="btn-random" data-tip="Generate new random hold (Spacebar)">Random</button>
+      </div>
+
+      <h3>HOLD CLASSIFICATION</h3>
+      <div class="grid2" id="htype-box"></div>
+      <label class="opt" style="margin-top:2px" data-tip="Your own hold, created from a text prompt or a hand-drawn profile in the ✨ Custom tab">
+        <input type="radio" name="htype" value="Custom"> Custom ✨ <span class="muted" id="custom-name-hint"></span>
+      </label>
+
+      <h3>CROSS-SECTION PROFILE (SIDE VIEW)</h3>
+      <canvas id="profile" class="mini" height="110" style="height:110px" data-tip="Side-view cross-section loft (Y-Z plane). Left border represents wall mounting plane (Z=0)."></canvas>
+      <div class="muted" id="desc" style="margin:4px 0 8px"></div>
+
+      <h3>DIFFICULTY LEVEL</h3>
+      <div class="inline-opts gap-b" id="diff-box"></div>
+
+      <h3 id="res-label">MESH QUALITY (2.00x)</h3>
+      <input type="range" id="res" min="0.5" max="4" step="0.25" value="2">
+
+      <h3 style="margin-top:12px">STL FILE EXPORT</h3>
+      <button class="btn action block" id="btn-export" data-tip="Export current 3D mesh for 3D printing (Ctrl+S)">Export STL File...</button>
+      <button class="btn block" id="btn-batch" data-tip="Generate many unique seeds and download them as one ZIP (Ctrl+B)">Batch Export Multiple Holds...</button>
+      <div id="progress-frame" hidden style="margin-top:6px">
+        <div class="progress"><div id="progress-bar"></div></div>
+        <button class="btn block" id="btn-cancel">Cancel Batch</button>
+      </div>
+    </section>
+
+    <!-- ============ TAB 2: BIOMECHANICS ============ -->
+    <section class="panel" id="tab-analysis" role="tabpanel" hidden>
+      <h3>3D SURFACE &amp; NORMAL SHADING</h3>
+      <div id="mode-box"></div>
+      <div class="modekey" id="mode-key"></div>
+      <label class="opt gap-b" data-tip="Enables/disables the 2D front grip projection overlay in the bottom-right of the 3D viewport">
+        <input type="checkbox" id="chk-map" checked> Show 2D Grip Minimap in Viewport
+      </label>
+
+      <h3>HOLD DIFFICULTY RATING</h3>
+      <div class="card gap-b">
+        <div class="hdi-score" id="hdi-score">HDI: -- / 10.0</div>
+        <div class="hdi-grade" id="hdi-grade">Grade Band: --</div>
+        <div class="progress"><div id="hdi-bar"></div></div>
+      </div>
+
+      <h3>BIOMECHANICAL &amp; FRICTION METRICS</h3>
+      <pre class="telemetry" id="telemetry">Computing analysis...</pre>
+
+      <h3>ROUTE SETTER'S GUIDE</h3>
+      <div class="guide" id="guide"></div>
+    </section>
+
+    <!-- ============ TAB 3: ROUTE SETTER ============ -->
+    <section class="panel" id="tab-route" role="tabpanel" hidden>
+      <h3>TARGET DIFFICULTY (V-SCALE)</h3>
+      <div class="vgrade" id="v-grade">Grade: V3 (Intermediate)</div>
+      <input type="range" id="v-slider" min="0" max="12" step="1" value="3">
+      <div class="legend3 muted gap-b"><span>V0 (Intro)</span><span>V6 (Advanced)</span><span>V12+ (Elite)</span></div>
+
+      <h3>WALL ANGLE &amp; PROFILE</h3>
+      <div id="angle-box" class="gap-b"></div>
+
+      <h3>BOULDER SEQUENCE (2.4m x 3.6m WALL)</h3>
+      <canvas id="wall" class="mini" height="200" style="height:200px" data-tip="Click any hold on the wall to load its 3D procedural mesh into the 3D viewport!"></canvas>
+
+      <h3>SETTER'S BETA &amp; HOLD DETAILS</h3>
+      <pre class="telemetry" id="route-info"></pre>
+
+      <button class="btn action block" id="btn-route-regen" data-tip="Generates a fresh sequence of holds following routesetting movement flow">🎲 Re-Set Route Variation</button>
+      <button class="btn block" id="btn-route-load">🔍 Load Selected Hold in 3D View</button>
+      <button class="btn block" id="btn-route-export" data-tip="Saves all procedural holds in this climb into a ready-to-3D-print ZIP folder">📦 Export All Route STLs to Folder...</button>
+    </section>
+
+    <!-- ============ TAB 4: CUSTOM HOLD ============ -->
+    <section class="panel" id="tab-custom" role="tabpanel" hidden>
+      <h3>DESCRIBE YOUR HOLD</h3>
+      <textarea id="prompt" rows="3" placeholder="e.g. a wide two-hand rail, 30 mm deep, with a slightly incut lip"></textarea>
+      <div class="chips" id="chips"></div>
+
+      <div class="row" style="gap:14px">
+        <label class="opt"><input type="radio" name="engine" value="local" checked> Built-in interpreter</label>
+        <label class="opt"><input type="radio" name="engine" value="ai"> Claude AI</label>
+      </div>
+      <details class="ai" id="ai-settings">
+        <summary>Claude AI settings (uses your own Anthropic API key)</summary>
+        <div class="card">
+          <label class="muted" for="api-key">API key</label>
+          <input type="password" id="api-key" placeholder="sk-ant-..." autocomplete="off">
+          <label class="muted" for="api-model" style="display:block;margin-top:6px">Model</label>
+          <input type="text" id="api-model" value="claude-sonnet-5-5">
+          <label class="opt" style="margin-top:6px"><input type="checkbox" id="api-remember"> Remember key in this browser</label>
+          <div class="note">The key is sent only to api.anthropic.com from your browser. Each visitor of your GitHub page uses their own key. The built-in interpreter needs no key and works offline.</div>
+        </div>
+      </details>
+      <button class="btn action block" id="btn-prompt">✨ Create Hold from Prompt</button>
+      <div class="understood" id="understood"></div>
+
+      <h3 style="margin-top:12px">PROFILE EDITOR <span class="badge" id="kind-badge"></span></h3>
+      <canvas id="editor" class="mini" height="210" style="height:210px" tabindex="0" aria-label="Profile editor"></canvas>
+      <div class="note" id="editor-hint">Drag points to reshape the side profile. Double-click a line to add a point. Select a point and press Delete to remove it.</div>
+      <div class="lockbar">
+        <button class="btn small grow" id="btn-unlock" data-tip="Convert this tuned shape into free-form control points you can drag">Unlock free-form profile</button>
+        <button class="btn small grow" id="btn-delpt">Remove point</button>
+      </div>
+      <div class="lockbar">
+        <select id="start-from" class="grow" aria-label="Starting shape"></select>
+        <button class="btn small" id="btn-reset-custom" data-tip="Replace the current custom hold with this starting shape">Start from shape</button>
+      </div>
+      <div class="slider-row" id="corner-row">
+        <div class="row"><span>Corner rounding (selected point)</span><span class="val" id="corner-val">--</span></div>
+        <input type="range" id="corner" min="0" max="0.5" step="0.01" value="0" disabled>
+      </div>
+
+      <h3>SHAPE &amp; SIZE</h3>
+      <label class="muted" for="cust-name">Name</label>
+      <input type="text" id="cust-name" maxlength="40">
+      <div style="margin-top:6px">
+        <label class="muted" for="behaves">Grip behaves like (used for biomechanics)</label>
+        <select id="behaves"></select>
+      </div>
+      <div id="param-sliders"></div>
+      <div class="slider-row">
+        <div class="row"><span>Surface texture</span><span class="val" id="rough-val">--</span></div>
+        <input type="range" id="rough" min="0" max="2.5" step="0.05" value="0.9">
+        <label class="opt muted"><input type="checkbox" id="rough-auto" checked> Match difficulty level (Easy 0.5, Medium 0.9, Hard 1.4)</label>
+      </div>
+
+      <h3>MY CUSTOM HOLDS</h3>
+      <div class="row">
+        <select id="library" class="grow"></select>
+        <button class="btn small" id="btn-lib-load">Load</button>
+        <button class="btn small" id="btn-lib-del">Delete</button>
+      </div>
+      <button class="btn action block" id="btn-lib-save" style="margin-top:6px">💾 Save Current Custom Hold</button>
+      <div class="row" style="margin-top:4px">
+        <button class="btn small grow" id="btn-spec-export" data-tip="Download this hold's design as a .json file to share or back up">Export design (.json)</button>
+        <button class="btn small grow" id="btn-spec-import">Import design...</button>
+        <input type="file" id="spec-file" accept=".json,application/json" hidden>
+      </div>
+      <div class="note">Saved holds stay in this browser. Export the .json to move them between devices.</div>
+    </section>
+  </aside>
+
+  <main class="viewport">
+    <canvas id="view" aria-label="3D hold viewport"></canvas>
+    <div class="gizmo-bar" id="gizmo-bar"></div>
+    <div class="status" id="status">Ready | Left-Drag: Orbit | Shift/Right-Drag: Pan | Scroll: Zoom</div>
+  </main>
+</div>
+
+<div id="tooltip" role="tooltip"></div>
+<div class="modal-back" id="modal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <h4 id="modal-title"></h4>
+    <div id="modal-body"></div>
+    <div class="row" id="modal-actions"></div>
+  </div>
+</div>
+
+<script>
+/* ==========================================================================
+   CORE ENGINE (pure functions, no DOM)
+   Faithful port of Rock_v5.py: identical seeds give identical holds.
+   ========================================================================== */
+
+// ---------------------------------------------------------------------------
+// Python-compatible random.Random (MT19937 + CPython seeding / helpers)
+// ---------------------------------------------------------------------------
+class PyRandom {
+  constructor(seed) {
+    this.mt = new Uint32Array(624);
+    this.mti = 625;
+    this.seed(seed);
+  }
+  _initGenrand(s) {
+    const mt = this.mt;
+    mt[0] = s >>> 0;
+    for (let i = 1; i < 624; i++) {
+      const prev = mt[i - 1] ^ (mt[i - 1] >>> 30);
+      mt[i] = (Math.imul(1812433253, prev) + i) >>> 0;
+    }
+    this.mti = 624;
+  }
+  _initByArray(key) {
+    const mt = this.mt, N = 624;
+    this._initGenrand(19650218);
+    let i = 1, j = 0, k = Math.max(N, key.length);
+    for (; k; k--) {
+      const prev = mt[i - 1] ^ (mt[i - 1] >>> 30);
+      mt[i] = ((mt[i] ^ Math.imul(prev, 1664525)) + key[j] + j) >>> 0;
+      i++; j++;
+      if (i >= N) { mt[0] = mt[N - 1]; i = 1; }
+      if (j >= key.length) j = 0;
+    }
+    for (k = N - 1; k; k--) {
+      const prev = mt[i - 1] ^ (mt[i - 1] >>> 30);
+      mt[i] = ((mt[i] ^ Math.imul(prev, 1566083941)) - i) >>> 0;
+      i++;
+      if (i >= N) { mt[0] = mt[N - 1]; i = 1; }
+    }
+    mt[0] = 0x80000000;
+  }
+  seed(seed) {
+    let n = BigInt(seed);
+    if (n < 0n) n = -n;
+    const key = [];
+    if (n === 0n) key.push(0);
+    while (n > 0n) { key.push(Number(n & 0xffffffffn)); n >>= 32n; }
+    this._initByArray(key);
+  }
+  _genrand() {
+    const mt = this.mt, N = 624, M = 397;
+    if (this.mti >= N) {
+      let kk = 0, y;
+      for (; kk < N - M; kk++) {
+        y = (mt[kk] & 0x80000000) | (mt[kk + 1] & 0x7fffffff);
+        mt[kk] = mt[kk + M] ^ (y >>> 1) ^ ((y & 1) ? 0x9908b0df : 0);
+      }
+      for (; kk < N - 1; kk++) {
+        y = (mt[kk] & 0x80000000) | (mt[kk + 1] & 0x7fffffff);
+        mt[kk] = mt[kk + (M - N)] ^ (y >>> 1) ^ ((y & 1) ? 0x9908b0df : 0);
+      }
+      y = (mt[N - 1] & 0x80000000) | (mt[0] & 0x7fffffff);
+      mt[N - 1] = mt[M - 1] ^ (y >>> 1) ^ ((y & 1) ? 0x9908b0df : 0);
+      this.mti = 0;
+    }
+    let y = mt[this.mti++];
+    y ^= (y >>> 11);
+    y ^= (y << 7) & 0x9d2c5680;
+    y ^= (y << 15) & 0xefc60000;
+    y ^= (y >>> 18);
+    return y >>> 0;
+  }
+  random() {
+    const a = this._genrand() >>> 5, b = this._genrand() >>> 6;
+    return (a * 67108864.0 + b) * (1.0 / 9007199254740992.0);
+  }
+  uniform(a, b) { return a + (b - a) * this.random(); }
+  getrandbits(k) { return this._genrand() >>> (32 - k); }
+  _randbelow(n) {
+    const k = n.toString(2).length;
+    let r = this.getrandbits(k);
+    while (r >= n) r = this.getrandbits(k);
+    return r;
+  }
+  choice(seq) { return seq[this._randbelow(seq.length)]; }
+  randint(a, b) { return a + this._randbelow(b - a + 1); }
+}
+
+// ---------------------------------------------------------------------------
+// Small helpers
+// ---------------------------------------------------------------------------
+const CRC_TABLE = (() => {
+  const t = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = (c & 1) ? (0xedb88320 ^ (c >>> 1)) : (c >>> 1);
+    t[n] = c >>> 0;
+  }
+  return t;
+})();
+function crc32(bytes) {
+  let c = 0xffffffff;
+  for (let i = 0; i < bytes.length; i++) c = CRC_TABLE[(c ^ bytes[i]) & 0xff] ^ (c >>> 8);
+  return (c ^ 0xffffffff) >>> 0;
+}
+const ENC = new TextEncoder();
+
+/** Python seed_to_int: int(text) if possible else zlib.crc32(utf8). Returns BigInt. */
+function seedToInt(text) {
+  const s = String(text).trim();
+  if (/^[+-]?\d+(?:_\d+)*$/.test(s)) return BigInt(s.replace(/_/g, ""));
+  return BigInt(crc32(ENC.encode(s)));
+}
+/** Python round() for .5 ties (banker's rounding) */
+function pyRound(x) {
+  const r = Math.round(x);
+  if (Math.abs(x % 1) === 0.5) return 2 * Math.round(x / 2);
+  return r;
+}
+function clamp(v, a = 0, b = 1) { return v < a ? a : v > b ? b : v; }
+/** Python round(x, n): nearest, exact ties to even */
+function round2(x, n) {
+  if (!isFinite(x)) return x;
+  const sign = x < 0 ? -1 : 1, ax = Math.abs(x);
+  const full = ax.toFixed(Math.min(100, n + 60));
+  const [ip, fp = ""] = full.split(".");
+  const tail = fp.slice(n);
+  if (tail[0] === "5" && /^0*$/.test(tail.slice(1))) {
+    const kept = ip + (n ? "." + fp.slice(0, n) : "");
+    const lastDigit = Number((ip + fp.slice(0, n)).slice(-1));
+    const v = parseFloat(kept) + (lastDigit % 2 ? Math.pow(10, -n) : 0);
+    return sign * parseFloat(v.toFixed(n));
+  }
+  return sign * parseFloat(ax.toFixed(n));
+}
+function rad(d) { return d * Math.PI / 180; }
+function deg(r) { return r * 180 / Math.PI; }
+
+// ---------------------------------------------------------------------------
+// Constants (identical to Rock_v5.py)
+// ---------------------------------------------------------------------------
+const NU = 56, NF = 64, NB = 6, SEG = 5, NSLOPER = 160;
+const RES_MIN = 0.5, RES_MAX = 4.0, RES_STEP = 0.25, RES_DEFAULT = 2.0;
+const HOLD_TYPES = ["Jug", "Crimp", "Sloper", "Pinch", "Pocket", "Edge"];
+const HOLD_INFO = {
+  Jug: "Deep incut bucket with ergonomic palm shelf; ideal for warmups & steep overhangs.",
+  Crimp: "Positive micro-edge (6-20 mm depth); requires precise fingertip grip.",
+  Sloper: "Curved friction hold with no positive lip; relies on open-hand body tension.",
+  Pinch: "Dual-sided squeeze hold with ergonomic thumb trough.",
+  Pocket: "Cavity hold engineered for 1-, 2-, or 3-finger isolation.",
+  Edge: "Full 4-finger ledge (20-40 mm depth) with comfortable rounded rim.",
+};
+const DIFFICULTY_LIST = ["Easy", "Medium", "Hard"];
+const PALETTE = [[231, 76, 60], [52, 152, 219], [46, 204, 113], [241, 196, 15],
+                 [155, 89, 182], [230, 126, 34], [26, 188, 156], [52, 73, 94]];
+const SPECS = {
+  Jug: {
+    Easy:   { W: 150, H: 125, D: 78, tl: 36, bd: 48, lean: 35, p: 2.5 },
+    Medium: { W: 128, H: 110, D: 66, tl: 30, bd: 40, lean: 28, p: 2.5 },
+    Hard:   { W: 102, H: 92,  D: 50, tl: 24, bd: 30, lean: 18, p: 2.5 } },
+  Crimp: {
+    Easy:   { W: 105, H: 38, D: 20, inc: 6,  r: 6.0, p: 3.8 },
+    Medium: { W: 88,  H: 32, D: 13, inc: 2,  r: 4.5, p: 3.8 },
+    Hard:   { W: 70,  H: 28, D: 7,  inc: -3, r: 3.5, p: 3.8 } },
+  Edge: {
+    Easy:   { W: 125, H: 62, D: 40, inc: 12, r: 8.0, p: 3.4 },
+    Medium: { W: 110, H: 55, D: 30, inc: 5,  r: 7.0, p: 3.4 },
+    Hard:   { W: 95,  H: 48, D: 22, inc: -5, r: 9.0, p: 3.4 } },
+  Sloper: {
+    Easy:   { W: 150, H: 125, D: 85, nt: 3.4, nb: 2.4, p: 2.2 },
+    Medium: { W: 135, H: 110, D: 78, nt: 2.7, nb: 2.3, p: 2.2 },
+    Hard:   { W: 120, H: 100, D: 70, nt: 2.1, nb: 2.1, p: 2.2 } },
+  Pinch: {
+    Easy:   { W: 62, H: 125, D: 48, p: 8.0 },
+    Medium: { W: 78, H: 145, D: 55, p: 5.5 },
+    Hard:   { W: 90, H: 175, D: 65, p: 3.2 } },
+  Pocket: {
+    Easy:   { W: 135, H: 110, D: 58, d: 44, hy: 30, a: 45, fingers: [3],    p: 2.6 },
+    Medium: { W: 125, H: 105, D: 44, d: 29, hy: 26, a: 35, fingers: [2, 3], p: 2.6 },
+    Hard:   { W: 110, H: 95,  D: 30, d: 17, hy: 22, a: 20, fingers: [1, 2], p: 2.6 } },
+};
+const FINGER_W = { 1: 24.0, 2: 44.0, 3: 64.0 };
+const ROUGH = { Easy: 0.5, Medium: 0.9, Hard: 1.4 };
+const POCKET_BLEND = 0.38;
+
+// ---------------------------------------------------------------------------
+// Polyline helpers
+// ---------------------------------------------------------------------------
+function roundPoly(pts, seg = 5, marks = null) {
+  const out = [[pts[0][0], pts[0][1]]];
+  if (marks) marks.push(0);
+  for (let i = 1; i < pts.length - 1; i++) {
+    const [y0, z0] = pts[i - 1], [y1, z1] = pts[i], [y2, z2] = pts[i + 1];
+    let r = pts[i][2];
+    const v1 = [y0 - y1, z0 - z1], v2 = [y2 - y1, z2 - z1];
+    const l1 = Math.hypot(v1[0], v1[1]), l2 = Math.hypot(v2[0], v2[1]);
+    if (r <= 1e-6 || l1 < 1e-9 || l2 < 1e-9) {
+      out.push([y1, z1]); if (marks) marks.push(out.length - 1); continue;
+    }
+    const u1 = [v1[0] / l1, v1[1] / l1], u2 = [v2[0] / l2, v2[1] / l2];
+    const ang = Math.acos(clamp(u1[0] * u2[0] + u1[1] * u2[1], -1, 1));
+    if (ang < 1e-3 || ang > Math.PI - 1e-3) {
+      out.push([y1, z1]); if (marks) marks.push(out.length - 1); continue;
+    }
+    let t = r / Math.tan(ang / 2);
+    const tmax = 0.5 * Math.min(l1, l2);
+    if (t > tmax) { t = tmax; r = t * Math.tan(ang / 2); }
+    let bx = u1[0] + u2[0], bz = u1[1] + u2[1];
+    const bl = Math.hypot(bx, bz);
+    bx /= bl; bz /= bl;
+    const dist = r / Math.sin(ang / 2);
+    const cy = y1 + bx * dist, cz = z1 + bz * dist;
+    const a1 = Math.atan2(y1 + u1[0] * t - cy, z1 + u1[1] * t - cz);
+    const a2 = Math.atan2(y1 + u2[0] * t - cy, z1 + u2[1] * t - cz);
+    let d = a2 - a1 + Math.PI;
+    d = d - 2 * Math.PI * Math.floor(d / (2 * Math.PI));   // Python % semantics
+    d -= Math.PI;
+    const n = Math.max(2, Math.ceil(Math.abs(d) / (Math.PI / 2) * seg));
+    const start = out.length;
+    for (let k = 0; k <= n; k++) {
+      const a = a1 + d * k / n;
+      out.push([cy + r * Math.sin(a), cz + r * Math.cos(a)]);
+    }
+    if (marks) marks.push(start + Math.floor(n / 2));
+  }
+  out.push([pts[pts.length - 1][0], pts[pts.length - 1][1]]);
+  if (marks) marks.push(out.length - 1);
+  return out;
+}
+
+function resample(poly, n) {
+  const d = [0];
+  for (let i = 0; i < poly.length - 1; i++)
+    d.push(d[d.length - 1] + Math.hypot(poly[i + 1][0] - poly[i][0], poly[i + 1][1] - poly[i][1]));
+  const total = d[d.length - 1];
+  const out = [];
+  let k = 0;
+  for (let i = 0; i < n; i++) {
+    const s = total * i / (n - 1);
+    while (k < d.length - 2 && d[k + 1] < s) k++;
+    const seg = d[k + 1] - d[k];
+    const t = seg < 1e-12 ? 0 : (s - d[k]) / seg;
+    const a = poly[k], b = poly[k + 1];
+    out.push([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]);
+  }
+  return out;
+}
+
+function resampleSections(poly, cuts, counts) {
+  const out = [];
+  for (let si = 0; si < counts.length; si++) {
+    const seg = poly.slice(cuts[si], cuts[si + 1] + 1);
+    const n = counts[si];
+    let part;
+    if (seg.length > 1) part = resample(seg, n + 1);
+    else { part = []; for (let q = 0; q <= n; q++) part.push(seg[0]); }
+    if (si < counts.length - 1) part = part.slice(0, -1);
+    out.push(...part);
+  }
+  return out;
+}
+
+function smoothstep(t) { t = clamp(t); return t * t * (3 - 2 * t); }
+
+// ---------------------------------------------------------------------------
+// Profile builders
+// ---------------------------------------------------------------------------
+function jugProfile(S) {
+  const H = S.H, tl = S.tl, bd = S.bd, lean = rad(S.lean);
+  return (D) => {
+    const yA = -H / 2, yc = yA + 0.80 * H, yT = yA + 0.92 * H;
+    const zin = D - tl;
+    const zb = Math.max(10.0, zin - bd * Math.tan(lean));
+    return [[yA, 0, 0],
+            [yA + 0.10 * H, 0.92 * D, 0.45 * D],
+            [yc, D, 0.45 * tl],
+            [yc, zin, 0.45 * tl],
+            [yc - bd, zb, 0.50 * bd],
+            [yT - 0.05 * H, Math.max(zb + 4.0, 16.0), 6.0],
+            [yT, 0, 0]];
+  };
+}
+function ledgeProfile(S) {
+  const H = S.H, inc = rad(S.inc), rl = S.r;
+  return (D) => {
+    const yA = -H / 2, yT = H / 2;
+    const yE = yT + D * Math.tan(inc);
+    return [[yA, 0, 0],
+            [yA + 0.30 * (yE - yA), 0.80 * D, 0.30 * H],
+            [yE, D, Math.min(rl, 0.45 * D)],
+            [yT, 0, 0]];
+  };
+}
+function sloperProfile(S, N = NSLOPER) {
+  const b = S.H / 2, nt = S.nt, nb = S.nb;
+  return (D) => {
+    const pts = [];
+    for (let t = 0; t <= N; t++) {
+      const th = Math.PI * (1 - t / N);
+      const c = Math.cos(th), s = Math.sin(th);
+      const n = c > 0 ? nt : nb;
+      const y = b * (c < 0 || Object.is(c, -0) ? -1 : 1) * Math.pow(Math.abs(c), 2 / n);
+      const z = D * Math.pow(Math.abs(s), 2 / n);
+      pts.push([y, z, 0]);
+    }
+    pts[0] = [-b, 0.0, 0];
+    pts[pts.length - 1] = [b, 0.0, 0];
+    return pts;
+  };
+}
+function pinchProfile(S, crown) {
+  const L = S.H;
+  return (D) => {
+    const yA = -L / 2, yT = L / 2;
+    return [[yA, 0, 0],
+            [yA + 0.03 * L, 0.90 * D, 0.50 * D],
+            [crown * L, D, 0],
+            [yT - 0.03 * L, 0.90 * D, 0.50 * D],
+            [yT, 0, 0]];
+  };
+}
+function pocketProfile(S, pocket) {
+  const H = S.H;
+  const d = pocket.d, hy = pocket.hy, a = rad(pocket.a);
+  const wx = pocket.wx, xc = pocket.xc;
+  const yT = H / 2, yA = -H / 2;
+  const dyin = Math.min(d * Math.tan(a), 0.9 * ((yT - 12) - (yA + 12 + hy)));
+  const yp = clamp(pocket.yp * H, yA + 12 + hy / 2, yT - 12 - hy / 2 - dyin);
+  const depthFactor = (x) => smoothstep((1.0 - Math.abs(x - xc) / (wx / 2.0)) / POCKET_BLEND);
+  return (D, x = 0.0) => {
+    const sd = depthFactor(x);
+    const de = Math.min(d, D - 9.0) * sd;
+    const dy = de > 0 ? Math.min(de * Math.tan(a), dyin) : 0.0;
+    const h2 = hy / 2.0 * (0.35 + 0.65 * sd);
+    const y0 = yp - h2, y1 = yp + h2;
+    if (sd > 1e-4) {
+      const rl = Math.max(0.0, Math.min(4.0, 6.0 * sd));
+      const rf = 0.45 * hy * sd;
+      return [[[yA, 0, 0], [yA + 0.03 * H, D, 0.5 * D],
+               [y0, D, rl],
+               [y0 + dy, D - de, rf], [y1 + dy, D - de, rf],
+               [y1, D, rl],
+               [yT - 0.03 * H, D, 0.5 * D], [yT, 0, 0]], [2, 5]];
+    }
+    return [[[yA, 0, 0], [yA + 0.03 * H, D, 0.5 * D],
+             [y0, D, 0], [y1, D, 0],
+             [yT - 0.03 * H, D, 0.5 * D], [yT, 0, 0]], [2, 3]];
+  };
+}
+/** Free-form custom profile: normalized [y/H, z/D, r/D] control points */
+function freeformProfile(S, points) {
+  return (D) => points.map(([y, z, r]) => [y * S.H, z * D, r * D]);
+}
+
+// ---------------------------------------------------------------------------
+// Mesh math
+// ---------------------------------------------------------------------------
+function signedVolume(v, tris) {
+  let s = 0;
+  for (const [a, b, c] of tris) {
+    const [x0, y0, z0] = v[a], [x1, y1, z1] = v[b], [x2, y2, z2] = v[c];
+    s += x0 * (y1 * z2 - z1 * y2) - y0 * (x1 * z2 - z1 * x2) + z0 * (x1 * y2 - y1 * x2);
+  }
+  return s / 6;
+}
+function triangleNormal(v0, v1, v2) {
+  const ux = v1[0] - v0[0], uy = v1[1] - v0[1], uz = v1[2] - v0[2];
+  const vx = v2[0] - v0[0], vy = v2[1] - v0[1], vz = v2[2] - v0[2];
+  const nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx;
+  const ln = Math.sqrt(nx * nx + ny * ny + nz * nz) || 1;
+  return [nx / ln, ny / ln, nz / ln];
+}
+function fmt0(x) { return x.toFixed(0); }
+function fmtSigned0(x) { const s = fmt0(x); return (s[0] === "-" ? s : "+" + s); }
+
+/**
+ * generate_hold(seed, htype, difficulty, quality, custom?)
+ * htype "Custom" uses the custom spec (see sanitizeSpec).
+ */
+function generateHold(seed, htype, difficulty, quality = 1.0, custom = null) {
+  const q = Math.max(0.25, Number(quality));
+  let NU_ = Math.max(8, pyRound(NU * q));
+  const NF_ = Math.max(16, pyRound(NF * q));
+  const NB_ = Math.max(2, pyRound(NB * Math.sqrt(q)));
+  const seg = Math.max(2, pyRound(SEG * q));
+
+  const seedVal = seedToInt(seed);
+  const rng = new PyRandom(seedVal);
+
+  let ptype = htype;           // which profile family drives geometry
+  let behaves = htype;         // which family drives biomechanics scoring
+  let S;
+  let roughness = ROUGH[difficulty];
+  if (htype === "Custom") {
+    if (!custom) throw new Error("No custom hold spec loaded.");
+    if (custom.kind === "tuned") {
+      S = JSON.parse(JSON.stringify(custom.params));
+      ptype = custom.base; behaves = custom.base;
+    } else {
+      S = { W: custom.W, H: custom.H, D: custom.D, p: custom.p };
+      ptype = "Profile"; behaves = custom.base;
+    }
+    if (custom.roughness != null) roughness = custom.roughness;
+  } else {
+    S = JSON.parse(JSON.stringify(SPECS[htype][difficulty]));
+  }
+
+  for (const key of ["W", "H", "D", "tl", "bd", "d", "hy", "r"])
+    if (key in S) S[key] *= rng.uniform(0.93, 1.07);
+  for (const key of ["lean", "inc", "a"])
+    if (key in S) S[key] += rng.uniform(-3.0, 3.0);
+
+  const p = S.p, ax = S.W / 2.0, Dn = S.D;
+  const ph = [0, 1, 2, 3].map(() => rng.uniform(0, 2 * Math.PI));
+  const dzAmp = rng.uniform(0.04, 0.10);
+  const s1 = rng.uniform(-1, 1) * 0.10, s2 = rng.uniform(-1, 1) * 0.06;
+  const dzf = (u) => 1.0 + dzAmp * Math.sin(1.7 * u + ph[0]);
+  const shear = (u) => 0.5 * S.H * (s1 * u + s2 * (u * u - 0.4));
+
+  const amp = roughness * Math.min(1.0, Dn / 25.0);
+  const bumps = [];
+  for (let i = 0; i < 5; i++) {
+    const ang = rng.uniform(0, 2 * Math.PI);
+    const f = rng.uniform(0.04, 0.12);
+    bumps.push([f * Math.cos(ang), f * Math.sin(ang), rng.uniform(0, 2 * Math.PI), amp * rng.uniform(0.3, 1.0)]);
+  }
+
+  let notes = "", pocket = null, prof;
+  if (ptype === "Jug") {
+    prof = jugProfile(S);
+    notes = `Lip ${fmt0(S.tl)} mm, bowl ${fmt0(S.bd)} mm deep, lean ${fmt0(S.lean)} deg`;
+  } else if (ptype === "Crimp" || ptype === "Edge") {
+    prof = ledgeProfile(S);
+    notes = `Ledge depth ${fmt0(S.D)} mm, lip radius ${S.r.toFixed(1)} mm, tilt ${fmtSigned0(S.inc)} deg`;
+  } else if (ptype === "Sloper") {
+    prof = sloperProfile(S, Math.max(40, pyRound(NSLOPER * q)));
+    const zz = 0.45, nt = S.nt, b = S.H / 2;
+    const slope = deg(Math.atan(b / S.D * Math.pow(zz, nt - 1) * Math.pow(1 - Math.pow(zz, nt), 1 / nt - 1)));
+    notes = `Slope at grip area approx ${fmt0(slope)} deg`;
+  } else if (ptype === "Pinch") {
+    prof = pinchProfile(S, rng.uniform(-0.06, 0.06));
+    notes = `Pinch gap ${fmt0(S.W)} mm (standard 64-89), length ${fmt0(S.H)} mm`;
+  } else if (ptype === "Pocket") {
+    const nf = rng.choice(S.fingers);
+    pocket = { d: Math.min(S.d, S.D - 9.0), hy: S.hy, a: S.a, wx: FINGER_W[nf],
+               xc: rng.uniform(-0.10, 0.10) * S.W, yp: rng.uniform(-0.15, 0.10) };
+    prof = pocketProfile(S, pocket);
+    const names = { 1: "Mono (1-finger)", 2: "2-finger", 3: "3-finger" };
+    notes = `${names[nf]} pocket, ${fmt0(pocket.d)} mm deep, incut ${fmt0(S.a)} deg`;
+  } else {
+    prof = freeformProfile(S, custom.profile);
+    notes = `Free-form profile (${custom.profile.length} control points), ${fmt0(S.D)} mm standoff`;
+  }
+  if (htype === "Custom") notes = `"${custom.name}": ${notes}`;
+
+  let us = [];
+  for (let i = 1; i < NU_; i++) us.push(-Math.cos(Math.PI * i / NU_));
+  let counts = null;
+  if (ptype === "Pocket") {
+    const zlo = pocket.xc - pocket.wx / 2.0 - 3.0;
+    const zhi = pocket.xc + pocket.wx / 2.0 + 3.0;
+    const hx = 1.6 / q;
+    const nz = Math.max(8, Math.ceil((zhi - zlo) / hx));
+    us = us.filter((u) => !(zlo <= ax * u && ax * u <= zhi));
+    for (let m = 0; m <= nz; m++) {
+      const v = (zlo + (zhi - zlo) * m / nz) / ax;
+      if (Math.abs(v) < 0.995) us.push(v);
+    }
+    us.sort((a, b) => a - b);
+    const [ref, [m0, m1]] = prof(Dn, pocket.xc);
+    const mk = [];
+    const dense = roundPoly(ref, seg, mk);
+    const cut = [0, mk[m0], mk[m1], dense.length - 1];
+    const ln = [];
+    for (let c = 0; c < 3; c++) {
+      let s = 0;
+      for (let t = cut[c]; t < cut[c + 1]; t++)
+        s += Math.hypot(dense[t + 1][0] - dense[t][0], dense[t + 1][1] - dense[t][1]);
+      ln.push(s);
+    }
+    const w = [ln[0], 1.6 * ln[1], ln[2]];
+    const sw = w[0] + w[1] + w[2];
+    counts = w.map((wi) => Math.max(4, pyRound((NF_ - 1) * wi / sw)));
+    counts[1] += (NF_ - 1) - (counts[0] + counts[1] + counts[2]);
+  }
+
+  NU_ = us.length + 1;
+  const verts = [[-ax, 0.0, 0.0]];
+  for (const u of us) {
+    const x = ax * u;
+    const k = Math.pow(1.0 - Math.pow(Math.abs(u), p), 1.0 / p);
+    const D = Dn * dzf(u);
+    let poly;
+    if (ptype === "Pocket") {
+      let [pts, [m0, m1]] = prof(D, x);
+      pts = pts.map(([y, z, r]) => [k * y, k * z, k * r]);
+      const mk = [];
+      const dense = roundPoly(pts, seg, mk);
+      poly = resampleSections(dense, [0, mk[m0], mk[m1], dense.length - 1], counts);
+    } else {
+      const pts = prof(D).map(([y, z, r]) => [k * y, k * z, k * r]);
+      poly = resample(roundPoly(pts, seg), NF_);
+    }
+    const sh = shear(u) * Math.sqrt(k);
+    const col = [];
+    for (let j = 0; j < poly.length; j++) {
+      let [y, z] = poly[j];
+      if (j > 0 && j < NF_ - 1) {
+        const w = Math.sin(Math.PI * j / (NF_ - 1));
+        let bsum = 0;
+        for (const [fx, fy, qb, a] of bumps) bsum += a * Math.sin(fx * x + fy * y + qb);
+        z += w * k * bsum;
+        z = Math.max(z, 0.3);
+      }
+      col.push([x, y + sh, z]);
+    }
+    const yT = col[col.length - 1][1], yA = col[0][1];
+    for (let m = 1; m <= NB_; m++) {
+      const t = m / (NB_ + 1.0);
+      col.push([x, yT + (yA - yT) * t, 0.0]);
+    }
+    for (const c of col) verts.push(c);
+  }
+  verts.push([ax, 0.0, 0.0]);
+
+  const NS = NF_ + NB_;
+  const last = verts.length - 1;
+  const V = (i, j) => (i === 0 ? 0 : i === NU_ ? last : 1 + (i - 1) * NS + (j % NS));
+  let tris = [];
+  for (let i = 0; i < NU_; i++) {
+    for (let j = 0; j < NS; j++) {
+      const a = V(i, j), b = V(i + 1, j), c = V(i + 1, j + 1), d = V(i, j + 1);
+      for (const t of [[a, b, c], [a, c, d]])
+        if (t[0] !== t[1] && t[1] !== t[2] && t[0] !== t[2]) tris.push(t);
+    }
+  }
+  let vol = signedVolume(verts, tris);
+  if (vol < 0) { tris = tris.map(([a, b, c]) => [a, c, b]); vol = -vol; }
+
+  let minx = Infinity, maxx = -Infinity, miny = Infinity, maxy = -Infinity, maxz = -Infinity;
+  for (const [x, y, z] of verts) {
+    if (x < minx) minx = x; if (x > maxx) maxx = x;
+    if (y < miny) miny = y; if (y > maxy) maxy = y;
+    if (z > maxz) maxz = z;
+  }
+  let pidx = Number(seedVal % BigInt(PALETTE.length));
+  if (pidx < 0) pidx += PALETTE.length;
+
+  const info = {
+    seed: String(seed), hold_type: htype, behaves, difficulty, quality: Number(quality),
+    w: round2(maxx - minx, 2), h: round2(maxy - miny, 2), t: round2(maxz, 2),
+    volume_cm3: round2(vol / 1000.0, 2), tris: tris.length, notes,
+    color: PALETTE[pidx],
+  };
+  return [verts, tris, info];
+}
+
+// ---------------------------------------------------------------------------
+// STL / ZIP writers
+// ---------------------------------------------------------------------------
+function stlBytes(verts, tris, name = "climbing_hold") {
+  const buf = new ArrayBuffer(84 + 50 * tris.length);
+  const u8 = new Uint8Array(buf);
+  const dv = new DataView(buf);
+  for (let i = 0; i < 80; i++) {
+    const ch = i < name.length ? name.charCodeAt(i) : 32;
+    u8[i] = ch < 128 ? ch : 63;
+  }
+  dv.setUint32(80, tris.length, true);
+  let o = 84;
+  for (const [a, b, c] of tris) {
+    const va = verts[a], vb = verts[b], vc = verts[c];
+    const n = triangleNormal(va, vb, vc);
+    for (const val of [...n, ...va, ...vb, ...vc]) { dv.setFloat32(o, val, true); o += 4; }
+    dv.setUint16(o, 0, true); o += 2;
+  }
+  return u8;
+}
+
+class ZipBuilder {
+  constructor() { this.parts = []; this.central = []; this.offset = 0; this.count = 0; }
+  _dos() {
+    const d = new Date();
+    const time = (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1);
+    const date = ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
+    return [time, date];
+  }
+  add(name, data) {
+    const nameB = ENC.encode(name);
+    const crc = crc32(data);
+    const [time, date] = this._dos();
+    const lh = new DataView(new ArrayBuffer(30));
+    lh.setUint32(0, 0x04034b50, true); lh.setUint16(4, 20, true); lh.setUint16(6, 0x0800, true);
+    lh.setUint16(8, 0, true); lh.setUint16(10, time, true); lh.setUint16(12, date, true);
+    lh.setUint32(14, crc, true); lh.setUint32(18, data.length, true); lh.setUint32(22, data.length, true);
+    lh.setUint16(26, nameB.length, true); lh.setUint16(28, 0, true);
+    this.parts.push(new Uint8Array(lh.buffer), nameB, data);
+    const ch = new DataView(new ArrayBuffer(46));
+    ch.setUint32(0, 0x02014b50, true); ch.setUint16(4, 20, true); ch.setUint16(6, 20, true);
+    ch.setUint16(8, 0x0800, true); ch.setUint16(10, 0, true); ch.setUint16(12, time, true);
+    ch.setUint16(14, date, true); ch.setUint32(16, crc, true); ch.setUint32(20, data.length, true);
+    ch.setUint32(24, data.length, true); ch.setUint16(28, nameB.length, true);
+    ch.setUint32(42, this.offset, true);
+    this.central.push(new Uint8Array(ch.buffer), nameB);
+    this.offset += 30 + nameB.length + data.length;
+    this.count++;
+  }
+  blob() {
+    let cdSize = 0;
+    for (const c of this.central) cdSize += c.length;
+    const end = new DataView(new ArrayBuffer(22));
+    end.setUint32(0, 0x06054b50, true);
+    end.setUint16(8, this.count, true); end.setUint16(10, this.count, true);
+    end.setUint32(12, cdSize, true); end.setUint32(16, this.offset, true);
+    return new Blob([...this.parts, ...this.central, new Uint8Array(end.buffer)], { type: "application/zip" });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 2D cross-section profile (side view)
+// ---------------------------------------------------------------------------
+function get2dProfileCurve(htype, diff = "Medium", custom = null) {
+  let S, ptype = htype;
+  if (htype === "Custom") {
+    if (!custom) return [[-1, 0], [1, 0]];
+    if (custom.kind === "tuned") { S = JSON.parse(JSON.stringify(custom.params)); ptype = custom.base; }
+    else return roundPoly(freeformProfile({ H: custom.H }, custom.profile)(custom.D), 6);
+  } else S = JSON.parse(JSON.stringify(SPECS[htype][diff]));
+  let prof;
+  if (ptype === "Jug") prof = jugProfile(S)(S.D);
+  else if (ptype === "Crimp" || ptype === "Edge") prof = ledgeProfile(S)(S.D);
+  else if (ptype === "Sloper") prof = sloperProfile(S, 60)(S.D);
+  else if (ptype === "Pinch") prof = pinchProfile(S, 0.0)(S.D);
+  else {
+    const pd = { d: Math.min(S.d, S.D - 9.0), hy: S.hy, a: S.a, wx: 44.0, xc: 0.0, yp: 0.0 };
+    prof = pocketProfile(S, pd)(S.D, 0.0)[0];
+  }
+  return roundPoly(prof, 6);
+}
+
+// ---------------------------------------------------------------------------
+// Biomechanical analysis (identical scoring to v5)
+// ---------------------------------------------------------------------------
+function analyzeMesh(verts, tris, htype, diff, info) {
+  let totalArea = 0, usableArea = 0;
+  const scores = new Float32Array(tris.length);
+  const worldNormals = new Float32Array(tris.length * 3);
+  let gripMin = Infinity, gripMax = -Infinity, gripCount = 0;
+  let incutNum = 0, incutDen = 0;
+
+  for (let i = 0; i < tris.length; i++) {
+    const [a, b, c] = tris[i];
+    const va = verts[a], vb = verts[b], vc = verts[c];
+    if (Math.abs(va[2]) < 0.05 && Math.abs(vb[2]) < 0.05 && Math.abs(vc[2]) < 0.05) {
+      scores[i] = 0; worldNormals.set([0, 0, -1], i * 3); continue;
+    }
+    const ux = vb[0] - va[0], uy = vb[1] - va[1], uz = vb[2] - va[2];
+    const vx = vc[0] - va[0], vy = vc[1] - va[1], vz = vc[2] - va[2];
+    const cx = uy * vz - uz * vy, cy = uz * vx - ux * vz, cz = ux * vy - uy * vx;
+    const ln = Math.sqrt(cx * cx + cy * cy + cz * cz);
+    const area = 0.5 * ln;
+    if (area < 1e-9) { scores[i] = 0; worldNormals.set([0, 1, 0], i * 3); continue; }
+    totalArea += area;
+    const nx = cx / ln, ny = cy / ln, nz = cz / ln;
+    worldNormals.set([nx, ny, nz], i * 3);
+    let s;
+    if (htype === "Pinch") {
+      const avgZ = (va[2] + vb[2] + vc[2]) / 3.0;
+      s = avgZ > 8.0 ? Math.min(1.0, Math.abs(nx) * 1.35) : 0.0;
+    } else if (htype === "Sloper") {
+      s = Math.max(0.0, ny * 0.75 + nz * 0.40);
+    } else {
+      s = Math.max(0.0, ny);
+      if (htype === "Jug" && nz < 0 && ny > 0) s = Math.min(1.0, s * 1.25);
+    }
+    scores[i] = s;
+    if (s > 0.35) {
+      usableArea += area;
+      const centroidX = (va[0] + vb[0] + vc[0]) / 3.0;
+      if (centroidX < gripMin) gripMin = centroidX;
+      if (centroidX > gripMax) gripMax = centroidX;
+      gripCount++;
+      incutNum += deg(Math.atan2(-nz, ny)) * area; incutDen += area;
+    }
+  }
+  const avgIncut = incutDen > 0 ? incutNum / incutDen : 0.0;
+  const gripSpan = gripCount ? gripMax - gripMin : 0.0;
+
+  let handFit;
+  if (gripSpan < 28) handFit = "Mono (1-Finger)";
+  else if (gripSpan < 52) handFit = "2-Finger Pocket";
+  else if (gripSpan < 85) handFit = "3-4 Fingers (Ledge)";
+  else if (gripSpan < 135) handFit = "Full Hand (Wrap)";
+  else handFit = "Dual-Hand Matchable";
+
+  const muReq = avgIncut < 0 ? Math.tan(rad(Math.abs(avgIncut))) : 0.05;
+  const depth = info.t;
+  let depthScore;
+  if (htype === "Crimp") depthScore = Math.max(1, Math.min(10, 10 - (depth - 5) * (6 / 15)));
+  else if (htype === "Edge") depthScore = Math.max(1, Math.min(8, 8 - (depth - 15) * (5 / 25)));
+  else if (htype === "Jug") depthScore = Math.max(1, Math.min(3, 3.5 - depth / 40));
+  else if (htype === "Pocket") depthScore = Math.max(2, Math.min(8.5, 9 - depth / 10));
+  else if (htype === "Pinch") {
+    const widthPenalty = Math.abs(info.w - 72) / 18;
+    depthScore = Math.max(2, Math.min(8.5, 4 + widthPenalty * 2.5));
+  } else depthScore = Math.max(3, Math.min(8.5, 8 - depth / 25));
+
+  let slopeScore;
+  if (avgIncut > 20) slopeScore = 1.0;
+  else if (avgIncut > 0) slopeScore = 2.8;
+  else if (avgIncut > -15) slopeScore = 5.2;
+  else if (avgIncut > -26) slopeScore = 7.6;
+  else slopeScore = 9.6;
+
+  let isoScore;
+  if (gripSpan < 28) isoScore = 9.5;
+  else if (gripSpan < 52) isoScore = 7.0;
+  else if (gripSpan < 85) isoScore = 4.5;
+  else if (gripSpan < 135) isoScore = 2.5;
+  else isoScore = 1.5;
+
+  let hdi;
+  if (htype === "Sloper") hdi = 0.50 * slopeScore + 0.30 * depthScore + 0.20 * isoScore;
+  else if (htype === "Crimp" || htype === "Edge") hdi = 0.55 * depthScore + 0.25 * slopeScore + 0.20 * isoScore;
+  else if (htype === "Pinch") hdi = 0.50 * depthScore + 0.30 * isoScore + 0.20 * slopeScore;
+  else if (htype === "Pocket") hdi = 0.45 * isoScore + 0.35 * depthScore + 0.20 * slopeScore;
+  else hdi = 0.40 * depthScore + 0.30 * slopeScore + 0.30 * isoScore;
+  hdi = round2(Math.max(1, Math.min(10, hdi)), 1);
+
+  let grade;
+  if (hdi <= 2.2) grade = "V0 \u2013 V1 (Introductory)";
+  else if (hdi <= 4.0) grade = "V2 \u2013 V3 (Beginner / Intermediate)";
+  else if (hdi <= 6.0) grade = "V4 \u2013 V5 (Intermediate)";
+  else if (hdi <= 7.5) grade = "V6 \u2013 V8 (Advanced)";
+  else if (hdi <= 9.0) grade = "V9 \u2013 V11 (Expert)";
+  else grade = "V12+ (Elite Master)";
+
+  return {
+    scores, world_normals: worldNormals,
+    total_area_cm2: round2(totalArea / 100, 1),
+    usable_area_cm2: round2(usableArea / 100, 1),
+    grip_ratio_pct: round2(totalArea > 0 ? usableArea / totalArea * 100 : 0, 1),
+    avg_incut_deg: round2(avgIncut, 1),
+    grip_span_mm: round2(gripSpan, 1),
+    hand_fit: handFit,
+    load_direction: htype === "Pinch" ? "Lateral Compression (Pinch)" : "Downward Pull (Shear)",
+    mu_req: round2(muReq, 2),
+    hdi, grade_band: grade,
+  };
+}
+
+function heatmapRGB(score, lit) {
+  const s = Math.max(0, Math.min(1, score));
+  let r, g, b, t;
+  if (s < 0.3) {
+    t = s / 0.3;
+    r = (25 + t * 5) * lit; g = (75 + t * 90) * lit; b = (185 + t * 30) * lit;
+  } else if (s < 0.6) {
+    t = (s - 0.3) / 0.3;
+    r = (30 + t * 215) * lit; g = (165 + t * 50) * lit; b = (215 - t * 185) * lit;
+  } else {
+    t = (s - 0.6) / 0.4;
+    r = (245 - t * 10) * lit; g = (215 - t * 180) * lit; b = (30 + t * 5) * lit;
+  }
+  return [clamp(Math.trunc(r), 0, 255), clamp(Math.trunc(g), 0, 255), clamp(Math.trunc(b), 0, 255)];
+}
+function normalRGB(nx, ny, nz) {
+  return [Math.trunc(clamp(nx * 0.5 + 0.5) * 255), Math.trunc(clamp(ny * 0.5 + 0.5) * 255),
+          Math.trunc(clamp(nz * 0.5 + 0.5) * 255)];
+}
+
+// ---------------------------------------------------------------------------
+// Route setter (identical algorithm)
+// ---------------------------------------------------------------------------
+function generateBoulderRoute(grade, angle, numHolds, routeSeed) {
+  const seedNum = seedToInt(routeSeed || "12345") + BigInt(grade * 100 + angle);
+  const rng = new PyRandom(seedNum);
+  const baseReach = 32.0 + grade * 4.8;
+  const reach = baseReach * Math.max(0.75, 1.0 - angle / 180.0);
+  const steep = angle >= 30 ? 1 : 0;
+  let pool, diff;
+  if (grade <= 1) { pool = ["Jug", "Edge"]; diff = "Easy"; }
+  else if (grade <= 3) {
+    pool = steep ? ["Jug", "Edge", "Pinch"] : ["Jug", "Edge", "Sloper", "Pinch"];
+    diff = grade === 2 ? "Easy" : "Medium";
+  } else if (grade <= 5) { pool = ["Edge", "Pinch", "Sloper", "Crimp", "Pocket"]; diff = "Medium"; }
+  else if (grade <= 8) {
+    pool = ["Crimp", "Sloper", "Pinch", "Pocket", "Edge"];
+    diff = (grade >= 7 && !steep) ? "Hard" : "Medium";
+  } else { pool = ["Crimp", "Sloper", "Pinch"]; diff = "Hard"; }
+
+  let x = 120.0 + rng.uniform(-25, 25);
+  let y = 55.0;
+  const route = [];
+  for (let i = 0; i < numHolds; i++) {
+    const htype = i < 2 ? pool[i % pool.length] : rng.choice(pool);
+    const holdSeed = rng.randint(1000, 999999);
+    let dx, dy, role, rot;
+    if (i === 0) {
+      dx = 0; dy = 0; role = "START (Left/Right)"; rot = rng.uniform(-10, 10);
+    } else if (i === numHolds - 1) {
+      dx = rng.choice([-1, 1]) * rng.uniform(0.1, 0.4) * reach;
+      dy = rng.uniform(0.75, 1.05) * reach;
+      x = Math.max(40, Math.min(200, x + dx));
+      y = Math.max(50, Math.min(330, y + dy));
+      role = "FINISH / TOP"; rot = rng.uniform(-12, 12);
+    } else {
+      dx = rng.choice([-1, 1]) * rng.uniform(0.35, 0.85) * reach;
+      dy = rng.uniform(0.70, 1.15) * reach;
+      x = Math.max(35, Math.min(205, x + dx));
+      y = Math.max(50, Math.min(325, y + dy));
+      role = `Hand Hold #${i + 1}`; rot = rng.uniform(-35, 35);
+    }
+    route.push({ idx: i, role, type: htype, diff, seed: holdSeed,
+                 x_cm: round2(x, 1), y_cm: round2(y, 1), rot_deg: round2(rot, 1),
+                 reach_cm: round2(Math.hypot(dx, dy), 1) });
+  }
+  return route;
+}
+
+// ---------------------------------------------------------------------------
+// CUSTOM HOLDS: spec model, templates, validation
+// ---------------------------------------------------------------------------
+/*
+ Spec shape:
+ { name, summary, kind: "tuned"|"profile", base: one of HOLD_TYPES,
+   params: {...SPECS keys}            (tuned)
+   W, H, D, p, profile: [[y,z,r],...] (profile; y in H units, z & r in D units)
+   roughness: number|null }
+*/
+const PARAM_RANGES = {
+  W: [20, 320, 1, "Width", "mm"], H: [15, 320, 1, "Height", "mm"], D: [4, 160, 1, "Depth (standoff)", "mm"],
+  tl: [5, 80, 1, "Lip thickness", "mm"], bd: [5, 90, 1, "Bowl depth", "mm"], lean: [-10, 60, 1, "Bowl lean", "\u00b0"],
+  inc: [-25, 30, 1, "Lip tilt (+ incut / - slopey)", "\u00b0"], r: [1, 20, 0.5, "Lip radius", "mm"],
+  nt: [1.2, 6, 0.1, "Top fullness (low = slopier)", ""], nb: [1.2, 6, 0.1, "Bottom fullness", ""],
+  d: [5, 80, 1, "Pocket depth", "mm"], hy: [10, 60, 1, "Pocket opening height", "mm"], a: [0, 60, 1, "Pocket incut angle", "\u00b0"],
+  p: [1.5, 12, 0.1, "Outline (low = oval, high = boxy)", ""],
+};
+const ROUGH_RANGE = [0, 2.5];
+
+function baseTemplatePoints(type, diff = "Medium") {
+  const S = JSON.parse(JSON.stringify(SPECS[type][diff]));
+  let pts;
+  if (type === "Jug") pts = jugProfile(S)(S.D);
+  else if (type === "Crimp" || type === "Edge") pts = ledgeProfile(S)(S.D);
+  else if (type === "Pinch") pts = pinchProfile(S, 0)(S.D);
+  else if (type === "Sloper")
+    return [[-0.5, 0, 0], [-0.42, 0.72, 0.45], [0.02, 1.0, 0.9], [0.4, 0.78, 0.45], [0.5, 0, 0]];
+  else return null;
+  return pts.map(([y, z, r]) => [round2(y / S.H, 3), round2(z / S.D, 3), round2(r / S.D, 3)]);
+}
+const SHAPE_TEMPLATES = {
+  double: { base: "Edge", W: 130, H: 110, D: 45, p: 3.4,
+    pts: [[-0.5, 0, 0], [-0.44, 1.0, 0.12], [-0.3, 0.7, 0.25], [0.3, 0.7, 0.25], [0.44, 1.0, 0.12], [0.5, 0, 0]],
+    label: "Double-lip (grip from above and below)" },
+  wave: { base: "Edge", W: 140, H: 150, D: 35, p: 3.4,
+    pts: [[-0.5, 0, 0], [-0.45, 0.6, 0.1], [-0.25, 0.9, 0.08], [-0.22, 0.55, 0.1], [0.0, 0.95, 0.08],
+          [0.03, 0.55, 0.1], [0.25, 1.0, 0.08], [0.28, 0.6, 0.1], [0.45, 0.7, 0.2], [0.5, 0, 0]],
+    label: "Stepped ridges (several small edges)" },
+  ramp: { base: "Edge", W: 120, H: 120, D: 60, p: 3.0,
+    pts: [[-0.5, 0, 0], [-0.45, 0.25, 0.1], [0.35, 1.0, 0.12], [0.5, 0, 0]],
+    label: "Ramp / wedge rising to a top edge" },
+  horn: { base: "Pinch", W: 70, H: 120, D: 70, p: 2.4,
+    pts: [[-0.5, 0, 0], [-0.35, 0.35, 0.2], [-0.05, 0.55, 0.3], [0.05, 1.0, 0.12], [0.15, 0.55, 0.2], [0.4, 0.3, 0.2], [0.5, 0, 0]],
+    label: "Horn / spike to wrap or pinch" },
+  undercling: { base: "Jug", W: 128, H: 110, D: 66, p: 2.5, pts: null,
+    label: "Undercling (incut lip facing down)" },
+};
+function undercling() {
+  return baseTemplatePoints("Jug").map(([y, z, r]) => [-y, z, r]).reverse();
+}
+
+function freeformFromBase(type, diff = "Medium", params = null) {
+  const S = params ? JSON.parse(JSON.stringify(params)) : JSON.parse(JSON.stringify(SPECS[type][diff]));
+  let pts = baseTemplatePoints(type, diff);
+  if (params && type !== "Sloper" && type !== "Pocket") {
+    let raw;
+    if (type === "Jug") raw = jugProfile(S)(S.D);
+    else if (type === "Crimp" || type === "Edge") raw = ledgeProfile(S)(S.D);
+    else raw = pinchProfile(S, 0)(S.D);
+    pts = raw.map(([y, z, r]) => [round2(y / S.H, 3), round2(z / S.D, 3), round2(r / S.D, 3)]);
+  }
+  return { W: S.W, H: S.H, D: S.D, p: S.p, profile: pts };
+}
+
+function num(v, lo, hi, dflt) {
+  const n = Number(v);
+  if (!isFinite(n)) return dflt;
+  return Math.min(hi, Math.max(lo, n));
+}
+
+/** Validate & repair any spec (from the AI, a file, or the interpreter). Throws on hopeless input. */
+function sanitizeSpec(raw) {
+  if (!raw || typeof raw !== "object") throw new Error("Spec must be a JSON object.");
+  const spec = {};
+  spec.name = String(raw.name || "Custom Hold").replace(/[^\w\s\-+.()#&']/g, "").trim().slice(0, 40) || "Custom Hold";
+  spec.summary = String(raw.summary || "").slice(0, 240);
+  spec.base = HOLD_TYPES.includes(raw.base) ? raw.base : "Jug";
+  spec.roughness = raw.roughness == null || raw.roughness === "" ? null : num(raw.roughness, ROUGH_RANGE[0], ROUGH_RANGE[1], null);
+  const kind = raw.kind === "tuned" ? "tuned" : "profile";
+  spec.kind = kind;
+  if (kind === "tuned") {
+    const ref = SPECS[spec.base].Medium;
+    const params = {};
+    const src = raw.params || {};
+    for (const k of Object.keys(ref)) {
+      if (k === "fingers") {
+        let f = Array.isArray(src.fingers) ? src.fingers : (src.fingers != null ? [src.fingers] : ref.fingers);
+        f = [...new Set(f.map(Number).filter((x) => x === 1 || x === 2 || x === 3))].sort();
+        params.fingers = f.length ? f : ref.fingers.slice();
+      } else {
+        const [lo, hi] = PARAM_RANGES[k];
+        params[k] = num(src[k] != null ? src[k] : raw[k], lo, hi, ref[k]);
+      }
+    }
+    if (spec.base === "Pocket") {
+      params.D = Math.max(params.D, 20);
+      params.d = Math.min(params.d, params.D - 10);
+      params.hy = Math.min(params.hy, params.H * 0.45);
+    }
+    if (spec.base === "Jug") {
+      params.tl = Math.min(params.tl, params.D * 0.7);
+      params.bd = Math.min(params.bd, params.H * 0.6);
+    }
+    spec.params = params;
+  } else {
+    spec.W = num(raw.W, ...PARAM_RANGES.W.slice(0, 2), 120);
+    spec.H = num(raw.H, ...PARAM_RANGES.H.slice(0, 2), 110);
+    spec.D = num(raw.D, ...PARAM_RANGES.D.slice(0, 2), 50);
+    spec.p = num(raw.p, ...PARAM_RANGES.p.slice(0, 2), 2.5);
+    let pts = Array.isArray(raw.profile) ? raw.profile : [];
+    pts = pts.map((pt) => Array.isArray(pt) ? pt : [pt && pt.y, pt && pt.z, pt && pt.r])
+             .map(([y, z, r]) => [Number(y), Number(z), Number(r) || 0])
+             .filter(([y, z]) => isFinite(y) && isFinite(z));
+    if (pts.length < 3) throw new Error("A free-form profile needs at least 3 points.");
+    pts = pts.slice(0, 32);
+    if (pts[0][0] > pts[pts.length - 1][0]) pts.reverse();
+    const zmax = Math.max(...pts.map((p) => p[1]));
+    if (!(zmax > 0)) throw new Error("Profile points never leave the wall (all depths are zero).");
+    pts = pts.map(([y, z, r]) => [num(y, -0.8, 0.8, 0), clamp(z / zmax, 0, 1), num(r, 0, 0.6, 0)]);
+    pts[0] = [pts[0][0], 0, 0];
+    pts[pts.length - 1] = [pts[pts.length - 1][0], 0, 0];
+    for (let i = 1; i < pts.length - 1; i++) pts[i][1] = Math.max(pts[i][1], 0.03);
+    spec.profile = pts.map((p) => p.map((v) => round2(v, 3)));
+  }
+  return spec;
+}
+
+function defaultCustomSpec() {
+  return sanitizeSpec({ name: "My Custom Jug", summary: "Free-form starting point based on a Medium jug.",
+                        kind: "profile", base: "Jug", ...freeformFromBase("Jug"), roughness: null });
+}
+
+// ---------------------------------------------------------------------------
+// Offline prompt interpreter (keyword + measurement parsing)
+// ---------------------------------------------------------------------------
+function interpretPrompt(text, diffDefault = "Medium") {
+  const raw = String(text || "").trim();
+  if (!raw) throw new Error("Describe the hold first, for example: \"wide incut rail, 30 mm deep\".");
+  const t = " " + raw.toLowerCase().replace(/[\u2013\u2014]/g, "-") + " ";
+  const has = (...words) => words.some((w) => new RegExp("(^|[^a-z])" + w + "($|[^a-z])").test(t));
+  const notes = [];
+
+  let diff = diffDefault;
+  if (has("easy", "beginner", "beginners", "friendly", "warm-?up", "warmup", "juggy", "kids?", "v0", "v1", "v2")) diff = "Easy";
+  else if (has("hard", "brutal", "elite", "advanced", "expert", "nasty", "evil", "savage", "v[7-9]", "v1[0-7]")) diff = "Hard";
+  else if (has("medium", "intermediate", "moderate", "v[3-6]")) diff = "Medium";
+  if (diff !== diffDefault) notes.push(`${diff} base`);
+
+  let template = null;
+  if (has("double", "two lips", "two-sided", "two sided", "dual[- ]lip", "both sides", "bi-?directional")) template = "double";
+  else if (has("undercling", "underclings", "upside[- ]down", "undercut")) template = "undercling";
+  else if (has("wave", "waves", "wavy", "ridges?", "ridged", "ladder", "stepped", "steps", "ribbed", "multiple edges")) template = "wave";
+  else if (has("ramp", "wedge", "pyramid", "triangle", "triangular", "volume")) template = "ramp";
+  else if (has("horn", "spike", "spiky", "peak", "fin", "knob", "tufa", "stalactite")) template = "horn";
+
+  let base;
+  if (has("pocket", "pockets", "mono", "hole", "finger hole", "[123]-?finger", "one-?finger", "two-?finger", "three-?finger")) base = "Pocket";
+  else if (has("pinch", "pinches", "squeeze", "thumb")) base = "Pinch";
+  else if (has("sloper", "slopers", "dome", "domed", "blob", "ball", "rounded hump")) base = "Sloper";
+  else if (has("crimp", "crimps", "crimpy", "micro", "razor", "chip")) base = "Crimp";
+  else if (has("jug", "jugs", "bucket", "handle", "juggy")) base = "Jug";
+  else if (has("edge", "edges", "ledge", "rail", "shelf", "flake")) base = "Edge";
+  else base = template ? SHAPE_TEMPLATES[template].base : "Jug";
+  // pocket shape cannot be free-formed; templates win over pockets only if explicit
+  if (template && base === "Pocket") template = null;
+
+  // ---- measurements -----------------------------------------------------
+  const meas = {};
+  const re = /(-?\d+(?:\.\d+)?)\s*(mm|millimet(?:er|re)s?|cm|centimet(?:er|re)s?|inch(?:es)?|in\b|"|\u00b0|deg(?:rees?)?)?/g;
+  let m;
+  const kw = {
+    W: /(wide|width|across|span|broad)/, H: /(tall|height|high)/, L: /(long|length)/,
+    D: /(deep|depth|standoff|stand-off|thick|thickness|protrud|sticks out|proud)/,
+    lip: /(lip)/, ang: /(incut|angle|tilt|lean|slope|slopey|negative|positive|outward)/,
+  };
+  while ((m = re.exec(t))) {
+    const val = parseFloat(m[1]);
+    const unit = (m[2] || "").trim();
+    if (/^\d$/.test(m[1]) && /finger/.test(t.slice(m.index, m.index + 14))) continue; // "2 finger"
+    if (/^v$/.test(t[m.index - 1])) continue;                                          // V-grade
+    const after = t.slice(m.index + m[0].length, m.index + m[0].length + 22);
+    const before = t.slice(Math.max(0, m.index - 26), m.index);
+    const isAngle = unit === "\u00b0" || unit.startsWith("deg");
+    let mm = val;
+    if (unit.startsWith("cm") || unit.startsWith("centi")) mm = val * 10;
+    else if (unit.startsWith("in") || unit === '"') mm = val * 25.4;
+    const pick = (ctx) => {
+      for (const k of (isAngle ? ["ang"] : ["lip", "W", "H", "L", "D"])) if (kw[k].test(ctx)) return k;
+      return null;
+    };
+    const key = pick(after.split(/[,;]| and |\d/)[0]) || pick(before.split(/[,;]| and |\d/).pop());
+    if (!key) {
+      if (isAngle) meas.ang = { v: val, ctx: before + after };
+      continue;
+    }
+    if (key === "ang") meas.ang = { v: val, ctx: before + after };
+    else meas[key] = mm;
+  }
+
+  // ---- build spec --------------------------------------------------------
+  let spec;
+  if (template) {
+    const T = SHAPE_TEMPLATES[template];
+    spec = { kind: "profile", base: base === "Pocket" ? T.base : base, W: T.W, H: T.H, D: T.D, p: T.p,
+             profile: template === "undercling" ? undercling() : T.pts.map((p) => p.slice()) };
+    if (template === "undercling") spec.base = "Jug";
+    const dScale = { Easy: 1.15, Medium: 1.0, Hard: 0.8 }[diff];
+    spec.D *= dScale;
+    notes.unshift(T.label);
+  } else {
+    spec = { kind: "tuned", base, params: JSON.parse(JSON.stringify(SPECS[base][diff])) };
+    notes.unshift(`${base} family`);
+  }
+  const P = spec.kind === "tuned" ? spec.params : spec;
+  const explicit = { W: meas.W != null || (meas.L != null && base !== "Pinch"), H: meas.H != null || (meas.L != null && base === "Pinch"), D: meas.D != null };
+  const scale = (k, f, label) => { if (k in P && !explicit[k]) { P[k] *= f; if (label) notes.push(label); } };
+
+  // qualitative modifiers (only where no explicit number)
+  if (has("huge", "massive", "giant", "enormous")) { scale("W", 1.4); scale("H", 1.4); scale("D", 1.3, "huge (+35% size)"); }
+  else if (has("big", "large", "chunky", "fat")) { scale("W", 1.2); scale("H", 1.2); scale("D", 1.15, "large (+20% size)"); }
+  if (has("tiny", "mini", "minuscule")) { scale("W", 0.65); scale("H", 0.65); scale("D", 0.6, "tiny (-40% size)"); }
+  else if (has("small", "little", "compact")) { scale("W", 0.82); scale("H", 0.82); scale("D", 0.85, "small (-15% size)"); }
+  if (has("rail", "two-?hand(ed)?", "matchable", "match")) { scale("W", 1.8, "rail / two-hand width"); if ("H" in P && base !== "Pinch") P.H *= 0.85; }
+  else if (has("wide", "broad", "long rail")) scale("W", 1.35, "wide (+35% width)");
+  if (has("narrow", "slim", "skinny")) scale("W", 0.7, "narrow (-30% width)");
+  if (has("tall")) scale("H", 1.3, "tall (+30% height)");
+  if (has("short", "stubby")) scale("H", 0.75, "short (-25% height)");
+  if (has("deep", "positive")) scale("D", 1.25, "deep (+25% standoff)");
+  if (has("shallow", "thin", "flat", "low-?profile")) scale("D", 0.72, "shallow (-28% standoff)");
+
+  const isIncut = has("incut", "hooky", "hook", "positive", "grippy lip");
+  const isSlopey = has("slopey", "slopy", "sloping", "negative", "outward", "flared", "rounded off", "bad");
+  if (spec.kind === "tuned") {
+    if (base === "Jug") { if (isIncut) { P.lean += 10; P.tl *= 1.15; notes.push("extra incut (+10\u00b0 lean)"); }
+                          if (isSlopey) { P.lean -= 12; notes.push("less incut (-12\u00b0 lean)"); } }
+    if (base === "Crimp" || base === "Edge") {
+      if (isIncut) { P.inc += 8; notes.push("incut lip (+8\u00b0)"); }
+      if (isSlopey) { P.inc -= 9; notes.push("slopey lip (-9\u00b0)"); }
+      if (has("sharp", "crisp", "square")) { P.r *= 0.55; notes.push("sharper lip"); }
+      if (has("comfy", "comfortable", "soft", "rounded", "gentle", "friendly")) { P.r *= 1.5; notes.push("softer lip radius"); }
+    }
+    if (base === "Sloper") {
+      if (isSlopey || diff === "Hard") { P.nt = Math.max(1.4, P.nt * 0.8); notes.push("slopier top"); }
+      if (has("friendly", "positive", "incut", "grippy")) { P.nt *= 1.25; notes.push("fuller, friendlier top"); }
+    }
+    if (base === "Pocket") {
+      if (has("mono", "one-?finger", "1-?finger", "single finger")) { P.fingers = [1]; notes.push("mono (1 finger)"); }
+      else if (has("two-?finger", "2-?finger", "two finger", "2 finger")) { P.fingers = [2]; notes.push("2-finger"); }
+      else if (has("three-?finger", "3-?finger", "three finger", "3 finger")) { P.fingers = [3]; notes.push("3-finger"); }
+      if (isIncut) { P.a += 10; notes.push("incut pocket (+10\u00b0)"); }
+      if (isSlopey) { P.a -= 12; notes.push("shallower pocket angle"); }
+    }
+  } else if (isIncut || isSlopey) {
+    // tilt the free-form lip points by stretching the top-most deep point upward/downward
+    const shift = isIncut ? 0.05 : -0.06;
+    spec.profile = spec.profile.map(([y, z, r], i, a) => (i > 0 && i < a.length - 1 && z > 0.85 ? [y + shift, z, r] : [y, z, r]));
+    notes.push(isIncut ? "lip pushed upward (more incut)" : "lip rolled down (slopier)");
+  }
+  if (has("boxy", "square", "rectangular", "blocky")) { P.p = 7; notes.push("boxy outline"); }
+  else if (has("oval", "circular", "round outline", "egg")) { P.p = 2; notes.push("oval outline"); }
+
+  // explicit measurements override everything
+  if (meas.W != null) { P.W = meas.W; notes.push(`width ${fmt0(meas.W)} mm`); }
+  if (meas.L != null) {
+    if (base === "Pinch") { P.H = meas.L; notes.push(`length ${fmt0(meas.L)} mm`); }
+    else { P.W = meas.L; notes.push(`length ${fmt0(meas.L)} mm`); }
+  }
+  if (meas.H != null) { P.H = meas.H; notes.push(`height ${fmt0(meas.H)} mm`); }
+  if (meas.D != null) {
+    if (base === "Pocket" && /pocket|hole/.test(t) && meas.D < (P.D || 99) - 10 && /pocket[^,.;]{0,20}deep|deep[^,.;]{0,12}pocket/.test(t)) {
+      P.d = meas.D; notes.push(`pocket depth ${fmt0(meas.D)} mm`);
+    } else { P.D = meas.D; notes.push(`depth ${fmt0(meas.D)} mm`); }
+  }
+  if (meas.lip != null && "tl" in P) { P.tl = meas.lip; notes.push(`lip ${fmt0(meas.lip)} mm`); }
+  else if (meas.lip != null && "r" in P) { P.r = Math.min(meas.lip, 20); notes.push(`lip radius ${fmt0(P.r)} mm`); }
+  if (meas.ang) {
+    let a = meas.ang.v;
+    if (/(negative|slopey|sloping|outward|down)/.test(meas.ang.ctx) && a > 0) a = -a;
+    if ("inc" in P) { P.inc = a; notes.push(`lip tilt ${fmtSigned0(a)}\u00b0`); }
+    else if ("lean" in P) { P.lean = a; notes.push(`bowl lean ${fmt0(a)}\u00b0`); }
+    else if ("a" in P) { P.a = a; notes.push(`pocket angle ${fmt0(a)}\u00b0`); }
+  }
+
+  if (has("smooth", "polished", "glassy", "slick")) { spec.roughness = 0.25; notes.push("smooth texture"); }
+  else if (has("rough", "textured", "sandy", "coarse", "grippy", "gritty")) { spec.roughness = 1.8; notes.push("rough texture"); }
+  else spec.roughness = null;
+
+  const cleaned = raw.replace(/^\s*(please\s+)?(make|create|design|generate|build|give|i want|i need)?\s*(me\s+)?(a|an|the|some)?\s+/i, "");
+  const words = cleaned.replace(/[^\w\s-]/g, " ").split(/\s+/).filter(Boolean).slice(0, 4).join(" ");
+  spec.name = words.replace(/\b\w/g, (c) => c.toUpperCase()).slice(0, 40) || "Custom Hold";
+  spec.summary = raw.slice(0, 240);
+  return { spec: sanitizeSpec(spec), difficulty: diff, understood: notes };
+}
+
+// ---------------------------------------------------------------------------
+// AI prompt (Claude) instructions and response parsing
+// ---------------------------------------------------------------------------
+const AI_SYSTEM_PROMPT = `You design 3D-printable climbing holds. Convert the user's description into ONE JSON object and output ONLY that JSON (no prose, no markdown fences).
+
+Two kinds of spec are allowed.
+
+1) "tuned": reuse a proven parametric generator and set its parameters.
+{"kind":"tuned","name":"<=40 chars","summary":"one sentence","base":"Jug|Crimp|Sloper|Pinch|Pocket|Edge","roughness":null or 0-2.5,"params":{...}}
+Parameters (all mm or degrees). W=width across wall, H=height up wall, D=max standoff from wall, p=outline exponent (2 oval .. 8 boxy).
+- Jug: W 60-220, H 60-180, D 30-110, tl lip thickness 10-50, bd bowl depth 15-70, lean bowl lean deg 0-50, p ~2.5
+- Crimp: W 40-140, H 20-60, D 4-25, inc lip tilt deg -15..15 (+ incut), r lip radius 2-8, p ~3.8
+- Edge: W 60-200, H 30-90, D 15-50, inc -15..20, r 4-12, p ~3.4
+- Sloper: W 80-220, H 70-180, D 40-120, nt top fullness 1.6-4 (low = slopier), nb bottom fullness 1.6-3, p ~2.2
+- Pinch: W 50-110 (= pinch gap), H 90-220 (= length), D 35-80, p 3-8
+- Pocket: W 90-160, H 80-130, D 25-70, d pocket depth 10-50 (must be <= D-10), hy opening height 15-40, a incut deg 10-55, fingers array subset of [1,2,3], p ~2.6
+
+2) "profile": a free-form side cross-section when the shape does not fit a family (double lips, ridges, horns, wedges, underclings, odd shapes).
+{"kind":"profile","name":"...","summary":"...","base":"<family whose grip behaviour is closest, used for difficulty analysis>","W":mm,"H":mm,"D":mm,"p":2-8,"roughness":null or 0-2.5,"profile":[[y,z,r],...]}
+The profile is the side view of the hold: y = height up the wall as a fraction of H (-0.5 bottom .. 0.5 top), z = distance out from the wall as a fraction of D (0..1), r = corner rounding radius as a fraction of D (0..0.5). List 4-14 points ordered from the bottom wall contact to the top wall contact. First and last points must have z=0 and r=0. A positive (grippable) edge is a point with high z followed by a point at nearly the same or slightly higher y with much lower z (a downward-facing drop toward the wall creates an upward-facing ledge). An incut lip is created by having the profile go DOWN in y after the lip (a hook). At least one point must reach z=1.
+
+Prefer "tuned" whenever the description matches a family; use "profile" for anything unusual. Keep sizes physically sensible for a 3D printed hold bolted to a climbing wall.`;
+
+function parseAiJson(text) {
+  let s = String(text || "").replace(/```json|```/g, "").trim();
+  const a = s.indexOf("{"), b = s.lastIndexOf("}");
+  if (a < 0 || b < a) throw new Error("Claude did not return a JSON spec.");
+  return sanitizeSpec(JSON.parse(s.slice(a, b + 1)));
+}
+
+if (typeof module !== "undefined") {
+  module.exports = { PyRandom, seedToInt, generateHold, analyzeMesh, generateBoulderRoute, get2dProfileCurve,
+    interpretPrompt, sanitizeSpec, defaultCustomSpec, freeformFromBase, stlBytes, ZipBuilder, SPECS, HOLD_TYPES, crc32 };
+}
+
+</script>
+<script>
+"use strict";
+/* ==========================================================================
+   APP (UI) - mirrors the Tkinter App class from Rock_v5.py
+   ========================================================================== */
+const $ = (id) => document.getElementById(id);
+const C_MUTED = "#a0aec0", C_SUCCESS = "#38a169", C_ACCENT = "#3182ce";
+
+const LS = {
+  get(k, d = null) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* storage unavailable */ } },
+  del(k) { try { localStorage.removeItem(k); } catch (e) { /* ignore */ } },
+};
+const K_CUSTOM = "holdstudio.custom.v1", K_LIB = "holdstudio.library.v1", K_KEY = "holdstudio.apikey", K_MODEL = "holdstudio.model";
+
+const st = {
+  seed: "1234", diff: "Medium", htype: "Jug", res: RES_DEFAULT, wire: false, viewMode: "Heatmap", showMap: true,
+  routeGrade: 3, routeAngle: 15, routeCount: 6, routeSeed: "54321", route: [], selRoute: 0,
+  az: 0.6, tilt: 0.5, zoom: 1.0, panX: 0, panY: 0,
+  mesh: null, meshFast: null, analysis: null, analysisFast: null, center: [0, 0, 0], extent: 100,
+  gizmoHit: [], mapClose: null, mapCard: null, batchCancel: false, batchRunning: false,
+  custom: null, selPt: -1,
+};
+
+// ---------------------------------------------------------------------------
+// Utility
+// ---------------------------------------------------------------------------
+function pyStr(x) { return Number.isInteger(x) ? x.toFixed(1) : String(x); }
+function signed(x, d) { const s = x.toFixed(d); return s[0] === "-" ? s : "+" + s; }
+function setStatus(text, color = C_MUTED) { const s = $("status"); s.textContent = text; s.style.color = color; }
+function q() { return Math.max(RES_MIN, Number(st.res)); }
+function slug(s) { return String(s).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "custom"; }
+function download(blob, name) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+function sizeCanvas(cv, cssH) {
+  const dpr = window.devicePixelRatio || 1;
+  const w = Math.max(50, cv.clientWidth), h = cssH || Math.max(50, cv.clientHeight);
+  if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) {
+    cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+  }
+  const ctx = cv.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return [ctx, w, h];
+}
+function rgb(c) { return `rgb(${c[0]},${c[1]},${c[2]})`; }
+const nextFrame = () => new Promise((r) => setTimeout(r, 0));
+
+// ---------------------------------------------------------------------------
+// Tooltips (ToolTip class equivalent)
+// ---------------------------------------------------------------------------
+(function tooltips() {
+  const tip = $("tooltip");
+  let timer = null;
+  document.addEventListener("mouseover", (e) => {
+    const el = e.target.closest("[data-tip]");
+    if (!el) return;
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      const r = el.getBoundingClientRect();
+      tip.textContent = el.dataset.tip;
+      tip.style.display = "block";
+      const x = Math.min(r.left + 25, window.innerWidth - tip.offsetWidth - 6);
+      let y = r.top + Math.min(r.height, 25) + 4;
+      if (y + tip.offsetHeight > window.innerHeight) y = r.top - tip.offsetHeight - 4;
+      tip.style.left = x + "px"; tip.style.top = y + "px";
+    }, 350);
+  });
+  document.addEventListener("mouseout", (e) => {
+    if (e.target.closest("[data-tip]")) { clearTimeout(timer); tip.style.display = "none"; }
+  });
+  document.addEventListener("pointerdown", () => { clearTimeout(timer); tip.style.display = "none"; });
+})();
+
+// ---------------------------------------------------------------------------
+// Modal (messagebox / Toplevel equivalent)
+// ---------------------------------------------------------------------------
+function modal(title, bodyNode, actions) {
+  $("modal-title").textContent = title;
+  const body = $("modal-body"); body.innerHTML = "";
+  if (typeof bodyNode === "string") { const p = document.createElement("p"); p.textContent = bodyNode; body.appendChild(p); }
+  else body.appendChild(bodyNode);
+  const act = $("modal-actions"); act.innerHTML = "";
+  for (const [label, fn, primary] of actions) {
+    const b = document.createElement("button");
+    b.className = "btn" + (primary ? " action" : ""); b.textContent = label;
+    b.onclick = () => { if (fn() !== false) closeModal(); };
+    act.appendChild(b);
+  }
+  $("modal").hidden = false;
+  const first = body.querySelector("input") || act.querySelector(".action") || act.querySelector("button");
+  if (first) first.focus();
+}
+function closeModal() { $("modal").hidden = true; }
+function showInfo(title, text) { modal(title, text, [["OK", () => true, true]]); }
+$("modal").addEventListener("keydown", (e) => {
+  if (e.key === "Escape") closeModal();
+  if (e.key === "Enter" && e.target.tagName === "INPUT") { const a = $("modal-actions").querySelector(".action"); if (a) a.click(); }
+});
+
+// ---------------------------------------------------------------------------
+// Build static widgets
+// ---------------------------------------------------------------------------
+function buildWidgets() {
+  // tabs
+  document.querySelectorAll(".tab").forEach((t) => t.addEventListener("click", () => selectTab(t.dataset.tab)));
+
+  // hold types: two columns like the original (col1 = even index, col2 = odd)
+  const box = $("htype-box");
+  const col1 = document.createElement("div"), col2 = document.createElement("div");
+  HOLD_TYPES.forEach((t, i) => {
+    const l = document.createElement("label"); l.className = "opt";
+    l.innerHTML = `<input type="radio" name="htype" value="${t}"> ${t}`;
+    (i % 2 === 0 ? col1 : col2).appendChild(l);
+  });
+  box.append(col1, col2);
+  document.querySelectorAll('input[name="htype"]').forEach((r) => r.addEventListener("change", () => {
+    st.htype = r.value; onTypeChange();
+  }));
+
+  const db = $("diff-box");
+  DIFFICULTY_LIST.forEach((d) => {
+    const l = document.createElement("label"); l.className = "opt";
+    l.innerHTML = `<input type="radio" name="diff" value="${d}"> ${d}`;
+    db.appendChild(l);
+  });
+  document.querySelectorAll('input[name="diff"]').forEach((r) => r.addEventListener("change", () => {
+    st.diff = r.value; onTypeChange(); syncCustomPanel();
+  }));
+
+  // modes
+  const modes = [
+    ["Grip Heatmap (Red=High, Blue=None)", "Heatmap", "Red: High positive grip, Yellow: Moderate/Friction, Blue: Inactive"],
+    ["Blender View Normals (RGB MatCap)", "Normals", "Standard 3D Camera-Space Normals (+Z Cyan/Blue, +Y Green, +X Red)"],
+    ["World Coordinate Normals", "WorldNormals", "World-space axes (Green=Up wall, Blue=Standoff depth, Red=Lateral)"],
+    ["Realistic Resin", "Solid", "Natural climbing hold polyurethane material lighting"],
+  ];
+  const mb = $("mode-box");
+  for (const [text, val, tip] of modes) {
+    const l = document.createElement("label"); l.className = "opt"; l.dataset.tip = tip;
+    l.innerHTML = `<input type="radio" name="vmode" value="${val}"${val === "Heatmap" ? " checked" : ""}> ${text}`;
+    mb.appendChild(l);
+  }
+  document.querySelectorAll('input[name="vmode"]').forEach((r) => r.addEventListener("change", () => {
+    st.viewMode = r.value; onViewModeChange();
+  }));
+  $("chk-map").addEventListener("change", (e) => { st.showMap = e.target.checked; redraw(); syncToolbar(); });
+
+  // angles
+  const ab = $("angle-box");
+  for (const [text, val] of [["Vert (0°)", 0], ["Overhang (15°)", 15], ["Steep (30°)", 30], ["Roof (45°)", 45]]) {
+    const l = document.createElement("label"); l.className = "opt";
+    l.innerHTML = `<input type="radio" name="angle" value="${val}"${val === 15 ? " checked" : ""}> ${text}`;
+    ab.appendChild(l);
+  }
+  document.querySelectorAll('input[name="angle"]').forEach((r) => r.addEventListener("change", () => {
+    st.routeAngle = Number(r.value); generateRoute();
+  }));
+
+  // floating toolbar
+  const buttons = [
+    ["🔍 +", () => zoomStep(1.15), "Zoom In"],
+    ["🔍 −", () => zoomStep(0.85), "Zoom Out"],
+    ["☩ Pan", resetPan, "Reset Camera Pan"],
+    ["🎥 3D", () => setView(0.6, 0.5), "Isometric 3D View (R)"],
+    ["Front", () => setView(0, 0), "Front Orthographic View (Z)"],
+    ["Side", () => setView(Math.PI / 2, 0), "Profile View (X)"],
+    ["Top", () => setView(0, Math.PI / 2), "Top View (Y)"],
+    ["🌐 Wire", toggleWire, "Toggle Wireframe", "wire"],
+    ["🗺️ Map", toggleMap, "Toggle 2D Grip Minimap Inset (Bottom-Right)", "map"],
+  ];
+  const bar = $("gizmo-bar");
+  for (const [text, fn, tip, id] of buttons) {
+    const b = document.createElement("button");
+    b.textContent = text; b.dataset.tip = tip; b.onclick = fn;
+    if (id) b.id = "tb-" + id;
+    bar.appendChild(b);
+  }
+
+  $("seed").addEventListener("keydown", (e) => { if (e.key === "Enter") { st.seed = e.target.value; regen(); } });
+  $("seed").addEventListener("change", (e) => { st.seed = e.target.value; regen(); });
+  $("btn-random").onclick = randomise;
+
+  let resJob = null;
+  $("res").addEventListener("input", (e) => {
+    st.res = Number(e.target.value); updateResLabel();
+    clearTimeout(resJob);
+    resJob = setTimeout(() => {
+      setStatus("Recomputing adaptive lofting...");
+      setTimeout(() => { regen(); setStatus("Mesh updated.", C_MUTED); }, 10);
+    }, 250);
+  });
+
+  $("btn-export").onclick = exportStl;
+  $("btn-batch").onclick = batch;
+  $("btn-cancel").onclick = () => { st.batchCancel = true; setStatus("Stopping batch..."); };
+
+  $("v-slider").addEventListener("input", (e) => { st.routeGrade = Number(e.target.value); onRouteGradeChange(); });
+  $("btn-route-regen").onclick = () => { st.routeSeed = String(Math.floor(10000 + Math.random() * 990000)); generateRoute(); };
+  $("btn-route-load").onclick = loadSelectedRouteHold;
+  $("btn-route-export").onclick = exportRoutePackage;
+  $("wall").addEventListener("click", onWallClick);
+
+  // keyboard shortcuts (same as original)
+  document.addEventListener("keydown", (e) => {
+    if (!$("modal").hidden) return;
+    const tag = (e.target.tagName || "").toLowerCase();
+    const itype = (e.target.type || "").toLowerCase();
+    const typing = (tag === "input" && !["radio", "checkbox", "range", "button"].includes(itype)) || tag === "textarea" || tag === "select" || e.target.isContentEditable;
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") { e.preventDefault(); exportStl(); return; }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "b") { e.preventDefault(); batch(); return; }
+    if (typing || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.target === $("editor")) return;
+    if (e.code === "Space" && tag !== "button") { e.preventDefault(); randomise(); }
+    else if (e.key === "r" || e.key === "R") resetView();
+  });
+}
+
+function selectTab(name) {
+  document.querySelectorAll(".tab").forEach((t) => t.setAttribute("aria-selected", t.dataset.tab === name ? "true" : "false"));
+  for (const n of ["design", "analysis", "route", "custom"]) $("tab-" + n).hidden = n !== name;
+  if (name === "design") redrawProfile();
+  if (name === "route") redrawWall();
+  if (name === "custom") { syncCustomPanel(); drawEditor(); }
+}
+
+function syncRadios() {
+  document.querySelectorAll('input[name="htype"]').forEach((r) => (r.checked = r.value === st.htype));
+  document.querySelectorAll('input[name="diff"]').forEach((r) => (r.checked = r.value === st.diff));
+  $("seed").value = st.seed;
+  $("custom-name-hint").textContent = st.custom ? `(${st.custom.name})` : "";
+}
+function syncToolbar() {
+  $("tb-wire").classList.toggle("on", st.wire);
+  $("tb-map").classList.toggle("on", st.showMap);
+  $("chk-map").checked = st.showMap;
+}
+function updateResLabel() { $("res-label").textContent = `MESH QUALITY (${q().toFixed(2)}x)`; }
+
+// ---------------------------------------------------------------------------
+// Generation & analysis panel (regen)
+// ---------------------------------------------------------------------------
+function customSpec() {
+  if (!st.custom) st.custom = defaultCustomSpec();
+  return st.custom;
+}
+function regen(opts = {}) {
+  const t = st.htype, d = st.diff;
+  const spec = t === "Custom" ? customSpec() : null;
+  $("desc").textContent = t === "Custom" ? (spec.summary || `Custom hold "${spec.name}".`) : (HOLD_INFO[t] || "");
+  const seed = st.seed || "0", qq = q();
+  try {
+    st.fastOnly = !!opts.fastOnly;
+    if (opts.fastOnly) {
+      const m = generateHold(seed, t, d, Math.min(qq, 1.0), spec);
+      st.mesh = st.meshFast = m;
+      st.analysis = st.analysisFast = analyzeMesh(m[0], m[1], m[2].behaves, d, m[2]);
+    } else {
+      st.mesh = generateHold(seed, t, d, qq, spec);
+      const [v, tr, inf] = st.mesh;
+      st.analysis = analyzeMesh(v, tr, inf.behaves, d, inf);
+      if (qq <= 1.0) { st.meshFast = st.mesh; st.analysisFast = st.analysis; }
+      else {
+        st.meshFast = generateHold(seed, t, d, 1.0, spec);
+        st.analysisFast = analyzeMesh(st.meshFast[0], st.meshFast[1], inf.behaves, d, st.meshFast[2]);
+      }
+    }
+    const [v, , inf] = st.mesh;
+    let mnx = Infinity, mxx = -Infinity, mny = Infinity, mxy = -Infinity, mxz = -Infinity;
+    for (const p of v) {
+      if (p[0] < mnx) mnx = p[0]; if (p[0] > mxx) mxx = p[0];
+      if (p[1] < mny) mny = p[1]; if (p[1] > mxy) mxy = p[1];
+      if (p[2] > mxz) mxz = p[2];
+    }
+    st.center = [(mxx + mnx) / 2, (mxy + mny) / 2, mxz / 2];
+    st.extent = Math.max(inf.w, inf.h, inf.t);
+    updateAnalysisPanel();
+    redrawProfile();
+    onViewModeChange();
+    syncRadios();
+  } catch (err) {
+    console.error(err);
+    setStatus(`Generation Error: ${err.message}`, "#f56565");
+  }
+}
+
+function updateAnalysisPanel() {
+  const [, , inf] = st.mesh;
+  const ana = st.analysis;
+  const t = st.htype, d = st.diff, b = inf.behaves;
+  $("hdi-score").textContent = `HDI: ${ana.hdi.toFixed(1)} / 10.0`;
+  $("hdi-grade").textContent = `Estimated Grade: ${ana.grade_band}`;
+  $("hdi-bar").style.width = (ana.hdi / 10 * 100) + "%";
+  $("telemetry").textContent =
+    `DIMENSIONS:   ${inf.w.toFixed(1)} W x ${inf.h.toFixed(1)} H x ${inf.t.toFixed(1)} D mm\n` +
+    `MESH VOLUME:  ${inf.volume_cm3.toFixed(1)} cm³ (${inf.tris.toLocaleString("en-US")} tris)\n` +
+    `--------------------------------------\n` +
+    `USABLE AREA:  ${pyStr(ana.usable_area_cm2)} cm² (${pyStr(ana.grip_ratio_pct)}% of surface)\n` +
+    `MEAN INCUT:   ${signed(ana.avg_incut_deg, 1)}° (${ana.avg_incut_deg > 0 ? "Incut Hook" : "Outward Sloper"})\n` +
+    `REQ. FRICTION: μ_req = ${ana.mu_req.toFixed(2)} (${ana.mu_req > 0.4 ? "Chalk Essential" : "Low Friction"})\n` +
+    `CONTACT SPAN: ${pyStr(ana.grip_span_mm)} mm -> ${ana.hand_fit}\n` +
+    `FORCE VECTOR: ${ana.load_direction}\n` +
+    `GEOMETRY:     ${inf.notes}` +
+    (t === "Custom" ? `\nANALYZED AS:  ${b} grip behaviour` : "");
+  let guide;
+  if (ana.mu_req > 0.45) guide = "⚠️ High friction requirement. On wall angles steeper than 25°, body tension must stay close to wall to prevent slipping.";
+  else if (ana.hand_fit === "Mono (1-Finger)") guide = "⚠️ Severe tendon pulley isolation. Best placed on vertical to slightly overhung terrain to prevent acute A2 pulley strain.";
+  else if (b === "Jug") guide = "✅ High positive incut. Ideal for roof/steep overhangs (30° to 60°) and endurance circuits.";
+  else if (t === "Custom") guide = `Custom ${d} hold "${inf.notes.split('"')[1] || "Custom"}" (${b}-style). Well balanced for vertical to 35° overhanging training boards.`;
+  else guide = `Standard ${d} ${t}. Well balanced for vertical to 35° overhanging training boards.`;
+  $("guide").textContent = guide;
+}
+
+function onTypeChange() { redrawProfile(); regen(); }
+function onViewModeChange() {
+  const key = $("mode-key");
+  const m = st.viewMode;
+  if (m === "Heatmap") { key.textContent = "■ Red: High Grip (>0.6)  ■ Yellow: Friction  ■ Blue: None"; key.style.color = "#e53e3e"; }
+  else if (m === "Normals") { key.textContent = "■ View Normals: Blue (+Z View), Green (+Y Up), Red (+X)"; key.style.color = "#63b3ed"; }
+  else if (m === "WorldNormals") { key.textContent = "■ World Normals: Green (Up Wall), Blue (Out), Red (Side)"; key.style.color = "#38a169"; }
+  else { key.textContent = "Natural Textured Polyurethane Shading"; key.style.color = C_MUTED; }
+  redraw();
+}
+function randomise() {
+  st.seed = String(10000 + Math.floor(Math.random() * 990000));
+  $("seed").value = st.seed;
+  regen();
+}
+
+// ---------------------------------------------------------------------------
+// 2D cross-section profile (design tab)
+// ---------------------------------------------------------------------------
+function redrawProfile() {
+  const cv = $("profile");
+  if (!cv.offsetParent) return;
+  const [c, w, h] = sizeCanvas(cv, 110);
+  c.clearRect(0, 0, w, h);
+  let pts;
+  try { pts = get2dProfileCurve(st.htype, st.diff, st.htype === "Custom" ? customSpec() : null); } catch (e) { return; }
+  const ys = pts.map((p) => p[0]), zs = pts.map((p) => p[1]);
+  const minY = Math.min(...ys), maxY = Math.max(...ys), maxZ = Math.max(...zs);
+  const spanY = Math.max(1, maxY - minY), spanZ = Math.max(1, maxZ);
+  const wallX = 42, availW = w - wallX - 30, availH = h - 22;
+  const scale = Math.min(availW / spanZ, availH / spanY);
+  const midY = (maxY + minY) / 2, midCY = h / 2;
+
+  c.strokeStyle = "#718096"; c.lineWidth = 2;
+  c.beginPath(); c.moveTo(wallX, 8); c.lineTo(wallX, h - 8); c.stroke();
+  c.strokeStyle = "#4a5568"; c.lineWidth = 1;
+  for (let yh = 12; yh < h - 10; yh += 10) { c.beginPath(); c.moveTo(wallX, yh); c.lineTo(wallX - 8, yh + 8); c.stroke(); }
+  c.fillStyle = C_MUTED; c.font = "9px " + getComputedStyle(document.body).fontFamily; c.textAlign = "center"; c.textBaseline = "middle";
+  c.fillText("Wall", wallX - 18, midCY - 6); c.fillText("Z=0", wallX - 18, midCY + 6);
+
+  c.beginPath();
+  pts.forEach(([y, z], i) => {
+    const px = wallX + z * scale, py = midCY - (y - midY) * scale;
+    i ? c.lineTo(px, py) : c.moveTo(px, py);
+  });
+  c.closePath();
+  c.fillStyle = "#2b6cb0"; c.fill();
+  c.strokeStyle = "#63b3ed"; c.lineWidth = 2; c.stroke();
+
+  const mi = zs.indexOf(maxZ);
+  const cx = wallX + maxZ * scale, cy = midCY - (ys[mi] - midY) * scale;
+  c.beginPath(); c.arc(cx, cy, 3, 0, 2 * Math.PI); c.fillStyle = "#38a169"; c.fill();
+  c.strokeStyle = "#fff"; c.lineWidth = 1; c.stroke();
+
+  c.font = "10px " + getComputedStyle(document.body).fontFamily;
+  c.fillStyle = C_MUTED; c.textAlign = "right"; c.textBaseline = "bottom";
+  c.fillText(`Max Depth: ${maxZ.toFixed(0)} mm`, w - 10, h - 4);
+  c.fillStyle = "#718096"; c.textAlign = "left"; c.textBaseline = "top"; c.font = "9px " + getComputedStyle(document.body).fontFamily;
+  c.fillText("+Y (Up Wall)", wallX + 10, 6);
+}
+
+// ---------------------------------------------------------------------------
+// 3D viewport rendering (painter's algorithm, same as Tk canvas version)
+// ---------------------------------------------------------------------------
+let redrawQueued = null;
+function requestRedraw(fast) {
+  if (redrawQueued !== null) { if (!fast) redrawQueued = false; return; }
+  redrawQueued = !!fast;
+  requestAnimationFrame(() => { const f = redrawQueued; redrawQueued = null; redraw(f); });
+}
+
+function redraw(fast = false) {
+  const cv = $("view");
+  const [c, w, h] = sizeCanvas(cv);
+  c.fillStyle = "#11161f"; c.fillRect(0, 0, w, h);
+  if (!st.mesh) return;
+  const [verts, tris, inf] = fast ? (st.meshFast || st.mesh) : st.mesh;
+  const ana = fast ? (st.analysisFast || st.analysis) : st.analysis;
+  const scores = ana ? ana.scores : null, wnorm = ana ? ana.world_normals : null;
+  const scale = st.zoom * Math.min(w, h) / (st.extent * 1.5);
+  const ca = Math.cos(st.az), sa = Math.sin(st.az), cb = Math.cos(st.tilt), sb = Math.sin(st.tilt);
+  const [cx0, cy0, cz0] = st.center;
+
+  const n = verts.length;
+  const PX = new Float64Array(n), PY = new Float64Array(n), PZ = new Float64Array(n);
+  for (let i = 0; i < n; i++) {
+    const x = verts[i][0] - cx0, y = verts[i][1] - cy0, z = verts[i][2] - cz0;
+    const x1 = x * ca + z * sa, z1 = -x * sa + z * ca;
+    PX[i] = x1; PY[i] = y * cb - z1 * sb; PZ[i] = y * sb + z1 * cb;
+  }
+  let L = [-0.35, 0.55, 0.75];
+  const ln = Math.hypot(...L); L = L.map((v) => v / ln);
+  const [br, bg, bb] = inf.color;
+  const mode = st.viewMode;
+
+  const faces = [];
+  for (let idx = 0; idx < tris.length; idx++) {
+    const [a, b, d] = tris[idx];
+    const ux = PX[b] - PX[a], uy = PY[b] - PY[a], uz = PZ[b] - PZ[a];
+    const vx = PX[d] - PX[a], vy = PY[d] - PY[a], vz = PZ[d] - PZ[a];
+    let nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx;
+    const l = Math.sqrt(nx * nx + ny * ny + nz * nz) || 1;
+    nx /= l; ny /= l; nz /= l;
+    if (nz <= 0) continue;
+    const lit = 0.28 + 0.72 * Math.max(0, nx * L[0] + ny * L[1] + nz * L[2]);
+    faces.push({ k: PZ[a] + PZ[b] + PZ[d], idx, lit, nx, ny, nz });
+  }
+  faces.sort((p, r) => p.k - r.k);
+  const mx = w / 2 + st.panX, my = h / 2 + st.panY;
+  c.lineJoin = "round";
+  c.lineWidth = st.wire ? 0.7 : 0.8;
+  for (const f of faces) {
+    const [a, b, d] = tris[f.idx];
+    let col;
+    if (mode === "Heatmap") col = heatmapRGB(scores ? scores[f.idx] : 0, f.lit);
+    else if (mode === "Normals") col = normalRGB(f.nx, f.ny, f.nz);
+    else if (mode === "WorldNormals") col = wnorm ? normalRGB(wnorm[f.idx * 3], wnorm[f.idx * 3 + 1], wnorm[f.idx * 3 + 2]) : [0, 255, 0];
+    else col = [Math.trunc(br * f.lit), Math.trunc(bg * f.lit), Math.trunc(bb * f.lit)];
+    const fill = rgb(col);
+    c.beginPath();
+    c.moveTo(mx + PX[a] * scale, my - PY[a] * scale);
+    c.lineTo(mx + PX[b] * scale, my - PY[b] * scale);
+    c.lineTo(mx + PX[d] * scale, my - PY[d] * scale);
+    c.closePath();
+    c.fillStyle = fill; c.fill();
+    c.strokeStyle = st.wire ? "#0b0f19" : fill; c.stroke();
+  }
+  drawGizmo(c, w, h);
+  drawGripMap(c, w, h);
+}
+
+function drawGizmo(c, w) {
+  const cx = w - 48, cy = 48, r = 30;
+  c.beginPath(); c.arc(cx, cy, r + 4, 0, 2 * Math.PI);
+  c.fillStyle = "#1c2331"; c.fill(); c.strokeStyle = "#2d3748"; c.lineWidth = 1; c.stroke();
+  const ca = Math.cos(st.az), sa = Math.sin(st.az), cb = Math.cos(st.tilt), sb = Math.sin(st.tilt);
+  const axes = [
+    ["X", [1, 0, 0], "#e53e3e", () => setView(Math.PI / 2, 0)],
+    ["Y", [0, 1, 0], "#38a169", () => setView(0, Math.PI / 2)],
+    ["Z", [0, 0, 1], "#3182ce", () => setView(0, 0)],
+    ["-X", [-1, 0, 0], "#742a2a", () => setView(-Math.PI / 2, 0)],
+    ["-Y", [0, -1, 0], "#1c4532", () => setView(0, -Math.PI / 2)],
+    ["-Z", [0, 0, -1], "#1a365d", () => setView(Math.PI, 0)],
+  ];
+  const proj = axes.map(([name, [x, y, z], color, fn]) => {
+    const x1 = x * ca + z * sa, z1 = -x * sa + z * ca;
+    const neg = name[0] === "-";
+    const len = r * (neg ? 0.65 : 0.90);
+    return { name, px: cx + x1 * len, py: cy - (y * cb - z1 * sb) * len, pz: y * sb + z1 * cb, color, fn, neg };
+  }).sort((a, b) => a.pz - b.pz);
+  st.gizmoHit = [];
+  c.font = "bold 9px " + getComputedStyle(document.body).fontFamily;
+  c.textAlign = "center"; c.textBaseline = "middle";
+  for (const p of proj) {
+    c.beginPath(); c.moveTo(cx, cy); c.lineTo(p.px, p.py);
+    c.strokeStyle = p.color; c.lineWidth = p.neg ? 1 : 2; c.stroke();
+    const dr = p.neg ? 4 : 7;
+    c.beginPath(); c.arc(p.px, p.py, dr, 0, 2 * Math.PI);
+    c.fillStyle = p.color; c.fill(); c.strokeStyle = p.neg ? p.color : "#fff"; c.lineWidth = 1; c.stroke();
+    if (!p.neg) { c.fillStyle = "#fff"; c.fillText(p.name, p.px, p.py + 0.5); }
+    st.gizmoHit.push([p.px, p.py, dr + 3, p.fn]);
+  }
+}
+
+function drawGripMap(c, w, h) {
+  if (!st.showMap || !st.mesh) { st.mapClose = st.mapCard = null; return; }
+  const cw = 190, ch = 136, m = 14;
+  const bx1 = w - cw - m, by1 = h - ch - m, bx2 = w - m, by2 = h - m;
+  st.mapCard = [bx1, by1, bx2, by2];
+  c.fillStyle = "#151b26"; c.fillRect(bx1, by1, cw, ch);
+  c.strokeStyle = "#2d3748"; c.lineWidth = 1; c.strokeRect(bx1 + 0.5, by1 + 0.5, cw - 1, ch - 1);
+  const ff = getComputedStyle(document.body).fontFamily;
+  c.textBaseline = "middle"; c.textAlign = "left";
+  c.font = "bold 10px " + ff; c.fillStyle = "#edf2f7"; c.fillText("2D GRIP MAP", bx1 + 10, by1 + 12);
+  const tw = c.measureText("2D GRIP MAP").width;
+  c.font = "9px " + ff; c.fillStyle = "#718096"; c.fillText("(WALL FRONT)", bx1 + 16 + tw, by1 + 12);
+  const [x1, y1, x2, y2] = [bx2 - 20, by1 + 4, bx2 - 4, by1 + 20];
+  st.mapClose = [x1, y1, x2, y2];
+  c.font = "bold 10px " + ff; c.fillStyle = C_MUTED; c.textAlign = "center"; c.fillText("✕", (x1 + x2) / 2, (y1 + y2) / 2);
+
+  const [verts, tris] = st.meshFast || st.mesh;
+  const ana = st.analysisFast || st.analysis;
+  const scores = ana ? ana.scores : null;
+  const px1 = bx1 + 12, py1 = by1 + 24, px2 = bx2 - 12, py2 = by2 - 24;
+  let mnx = Infinity, mxx = -Infinity, mny = Infinity, mxy = -Infinity;
+  for (const p of verts) { if (p[0] < mnx) mnx = p[0]; if (p[0] > mxx) mxx = p[0]; if (p[1] < mny) mny = p[1]; if (p[1] > mxy) mxy = p[1]; }
+  const sc = Math.min((px2 - px1 - 6) / Math.max(1, mxx - mnx), (py2 - py1 - 6) / Math.max(1, mxy - mny));
+  const midX = (mxx + mnx) / 2, midY = (mxy + mny) / 2, cpx = (px1 + px2) / 2, cpy = (py1 + py2) / 2;
+  const step = tris.length > 4000 ? 2 : 1;
+  c.lineWidth = 0.8;
+  for (let idx = 0; idx < tris.length; idx += step) {
+    const [a, b, d] = tris[idx];
+    const va = verts[a], vb = verts[b], vd = verts[d];
+    if (Math.abs(va[2]) < 0.1 && Math.abs(vb[2]) < 0.1 && Math.abs(vd[2]) < 0.1) continue;
+    if ((vb[0] - va[0]) * (vd[1] - va[1]) - (vb[1] - va[1]) * (vd[0] - va[0]) <= 0) continue;
+    const col = rgb(heatmapRGB(scores ? scores[idx] : 0, 1.0));
+    c.beginPath();
+    c.moveTo(cpx + (va[0] - midX) * sc, cpy - (va[1] - midY) * sc);
+    c.lineTo(cpx + (vb[0] - midX) * sc, cpy - (vb[1] - midY) * sc);
+    c.lineTo(cpx + (vd[0] - midX) * sc, cpy - (vd[1] - midY) * sc);
+    c.closePath(); c.fillStyle = col; c.fill(); c.strokeStyle = col; c.stroke();
+  }
+  const lx1 = bx1 + 12, lx2 = bx2 - 12, ly1 = by2 - 14, ly2 = by2 - 8, lw = (lx2 - lx1) / 3;
+  c.fillStyle = "#194bb9"; c.fillRect(lx1, ly1, lw, ly2 - ly1);
+  c.fillStyle = "#f5d71e"; c.fillRect(lx1 + lw, ly1, lw, ly2 - ly1);
+  c.fillStyle = "#eb2323"; c.fillRect(lx1 + 2 * lw, ly1, lx2 - lx1 - 2 * lw, ly2 - ly1);
+  c.strokeStyle = "#4a5568"; c.strokeRect(lx1 + 0.5, ly1 + 0.5, lx2 - lx1 - 1, ly2 - ly1 - 1);
+  c.font = "8px " + ff; c.textBaseline = "middle";
+  c.fillStyle = "#63b3ed"; c.textAlign = "left"; c.fillText("0: Blue (None)", lx1, ly1 - 6);
+  c.fillStyle = "#e53e3e"; c.textAlign = "right"; c.fillText("Red (High Grip)", lx2, ly1 - 6);
+}
+
+// ---------------------------------------------------------------------------
+// Camera controls
+// ---------------------------------------------------------------------------
+function setView(az, tilt) { st.az = az; st.tilt = tilt; st.panX = st.panY = 0; redraw(); }
+function resetView() { st.az = 0.6; st.tilt = 0.5; st.zoom = 1; st.panX = st.panY = 0; redraw(); }
+function resetPan() { st.panX = st.panY = 0; redraw(); }
+function toggleWire() { st.wire = !st.wire; syncToolbar(); redraw(); }
+function toggleMap() { st.showMap = !st.showMap; syncToolbar(); redraw(); }
+let zoomJob = null;
+function zoomStep(f) {
+  st.zoom = clamp(st.zoom * f, 0.3, 5.0);
+  requestRedraw(true);
+  clearTimeout(zoomJob);
+  zoomJob = setTimeout(() => redraw(), 150);
+}
+
+(function viewportInput() {
+  const cv = $("view");
+  const pointers = new Map();
+  let drag = null, pinch = null;
+  const pos = (e) => { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+  cv.addEventListener("contextmenu", (e) => e.preventDefault());
+  cv.addEventListener("pointerdown", (e) => {
+    const [x, y] = pos(e);
+    pointers.set(e.pointerId, [x, y]);
+    if (pointers.size === 2) {
+      const [a, b] = [...pointers.values()];
+      pinch = { d: Math.hypot(a[0] - b[0], a[1] - b[1]), mx: (a[0] + b[0]) / 2, my: (a[1] + b[1]) / 2 };
+      drag = null; return;
+    }
+    if (st.mapClose) {
+      const [x1, y1, x2, y2] = st.mapClose;
+      if (x >= x1 && x <= x2 && y >= y1 && y <= y2) { st.showMap = false; syncToolbar(); redraw(); return; }
+    }
+    for (const [gx, gy, gr, fn] of st.gizmoHit) if (Math.hypot(x - gx, y - gy) <= gr) { fn(); return; }
+    if (st.mapCard) {
+      const [x1, y1, x2, y2] = st.mapCard;
+      if (x >= x1 && x <= x2 && y >= y1 && y <= y2) return;
+    }
+    drag = { x, y, pan: e.button === 2 || e.button === 1 || e.shiftKey };
+    cv.setPointerCapture(e.pointerId);
+    cv.classList.add("dragging");
+  });
+  cv.addEventListener("pointermove", (e) => {
+    if (!pointers.has(e.pointerId)) return;
+    const [x, y] = pos(e);
+    pointers.set(e.pointerId, [x, y]);
+    if (pinch && pointers.size === 2) {
+      const [a, b] = [...pointers.values()];
+      const d = Math.hypot(a[0] - b[0], a[1] - b[1]), mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
+      if (pinch.d > 0) st.zoom = clamp(st.zoom * d / pinch.d, 0.3, 5.0);
+      st.panX += mx - pinch.mx; st.panY += my - pinch.my;
+      pinch = { d, mx, my };
+      requestRedraw(true); return;
+    }
+    if (!drag) return;
+    const dx = x - drag.x, dy = y - drag.y;
+    if (drag.pan) { st.panX += dx; st.panY += dy; }
+    else { st.az += dx * 0.01; st.tilt = clamp(st.tilt + dy * 0.01, -Math.PI / 2, Math.PI / 2); }
+    drag.x = x; drag.y = y;
+    requestRedraw(true);
+  });
+  const up = (e) => {
+    pointers.delete(e.pointerId);
+    if (pointers.size < 2) pinch = null;
+    if (drag || pointers.size === 0) { drag = null; cv.classList.remove("dragging"); redraw(); }
+  };
+  cv.addEventListener("pointerup", up);
+  cv.addEventListener("pointercancel", up);
+  cv.addEventListener("wheel", (e) => { e.preventDefault(); zoomStep(e.deltaY < 0 ? 1.1 : 0.9); }, { passive: false });
+})();
+
+// ---------------------------------------------------------------------------
+// Exports (single STL, batch ZIP)
+// ---------------------------------------------------------------------------
+function holdFileName(seed, htype = st.htype, diff = st.diff) {
+  const t = htype === "Custom" ? "custom-" + slug(customSpec().name) : htype.toLowerCase();
+  return `hold_${t}_${diff.toLowerCase()}_${seed}.stl`;
+}
+function exportStl() {
+  if (!st.mesh) return;
+  // make sure a full-quality mesh is exported (not a fast drag preview)
+  if (st.fastOnly) regen();
+  const [v, t] = st.mesh;
+  const name = holdFileName(st.seed);
+  const label = st.htype === "Custom" ? customSpec().name : st.htype;
+  download(new Blob([stlBytes(v, t, `${label}_${st.seed}`)], { type: "model/stl" }), name);
+  setStatus(`Exported: ${name}`, C_SUCCESS);
+  showInfo("Export Complete", `Saved binary STL (${t.length.toLocaleString("en-US")} triangles):\n${name}`);
+}
+
+function batch() {
+  if (st.batchRunning) return;
+  const wrap = document.createElement("div");
+  const per = 84 + 50 * (st.mesh ? st.mesh[1].length : 30000);
+  wrap.innerHTML = `<p style="font-weight:700;text-align:center">How many holds to generate?</p>
+    <input type="number" id="qty" value="25" min="1" max="5000" style="text-align:center">
+    <p class="note" id="qty-note" style="margin-top:8px"></p>`;
+  const updNote = () => {
+    const n = Number(wrap.querySelector("#qty").value) || 0;
+    wrap.querySelector("#qty-note").textContent =
+      `Seeds ${st.seed} onward, ${st.htype} / ${st.diff}, quality ${q().toFixed(2)}x. ` +
+      `Downloads as one ZIP of about ${(n * per / 1048576).toFixed(n * per > 1048576 * 10 ? 0 : 1)} MB.`;
+  };
+  wrap.querySelector("#qty").addEventListener("input", updNote);
+  updNote();
+  modal("Batch Hold Export", wrap, [
+    ["Cancel", () => true],
+    ["Start Export", () => {
+      const count = Number(wrap.querySelector("#qty").value);
+      if (!Number.isInteger(count) || count < 1 || count > 5000) {
+        showInfo("Invalid Count", "Please enter a number between 1 and 5,000."); return false;
+      }
+      if (count * per > 1.6e9) {
+        showInfo("Batch Too Large", `That batch would be about ${(count * per / 1e9).toFixed(1)} GB, more than a browser can hold.\nLower the mesh quality or the number of holds.`);
+        return false;
+      }
+      closeModal();
+      runBatch(count);
+      return false;
+    }, true],
+  ]);
+}
+
+async function runBatch(count) {
+  st.batchCancel = false; st.batchRunning = true;
+  $("progress-frame").hidden = false; $("progress-bar").style.width = "0%";
+  const start = seedToInt(st.seed), htype = st.htype, diff = st.diff, qq = q();
+  const spec = htype === "Custom" ? JSON.parse(JSON.stringify(customSpec())) : null;
+  const label = htype === "Custom" ? spec.name : htype;
+  const zip = new ZipBuilder();
+  const t0 = performance.now();
+  let written = 0;
+  for (let i = 0; i < count; i++) {
+    if (st.batchCancel) break;
+    const s = (start + BigInt(i)).toString();
+    const [v, t] = generateHold(s, htype, diff, qq, spec);
+    zip.add(holdFileName(s, htype, diff), stlBytes(v, t, `${label}_${s}`));
+    written++;
+    if (i % 2 === 0 || i === count - 1) {
+      $("progress-bar").style.width = (written / count * 100) + "%";
+      setStatus(`Generating holds: ${written}/${count} (${(written / count * 100).toFixed(0)}%)`);
+      await nextFrame();
+    }
+  }
+  const elapsed = ((performance.now() - t0) / 1000).toFixed(1);
+  $("progress-frame").hidden = true;
+  st.batchRunning = false;
+  const status = st.batchCancel ? "Cancelled" : "Done";
+  const zipName = `holds_${htype === "Custom" ? "custom-" + slug(label) : htype.toLowerCase()}_${diff.toLowerCase()}_x${written}.zip`;
+  if (written > 0) download(zip.blob(), zipName);
+  setStatus(`Batch ${status} in ${elapsed}s: ${written} holds saved.`);
+  showInfo("Batch Export Finished", `Successfully generated ${written} of ${count} holds in ${elapsed}s.\n\nDownloaded:\n${written ? zipName : "(nothing to save)"}`);
+}
+
+// ---------------------------------------------------------------------------
+// Route setter
+// ---------------------------------------------------------------------------
+const GRADE_NAMES = {
+  0: "V0 (Introductory - Big Jugs)", 1: "V1 (Novice - Comfortable Jugs)", 2: "V2 (Beginner - Positive Edges)",
+  3: "V3 (Intermediate Low - Edges & Pinches)", 4: "V4 (Intermediate - Incut Crimps & Slopers)",
+  5: "V5 (Intermediate High - Flat Crimps & Tension)", 6: "V6 (Advanced Low - Small Crimps & Compression)",
+  7: "V7 (Advanced - Technical Body Positioning)", 8: "V8 (Advanced High - Powerful Lockoffs)",
+  9: "V9 (Expert Low - Micro-Crimps & Deadpoints)", 10: "V10 (Expert - High-Friction Slopers)",
+  11: "V11 (Master - Severe Finger Isolation)", 12: "V12+ (Elite - World Cup Power)",
+};
+const GRADE_COLORS = { 0: "#48bb78", 1: "#48bb78", 2: "#38a169", 3: "#ecc94b", 4: "#d69e2e", 5: "#ed8936", 6: "#dd6b20",
+  7: "#e53e3e", 8: "#c53030", 9: "#9b2c2c", 10: "#805ad5", 11: "#6b46c1", 12: "#553c9a" };
+
+function onRouteGradeChange() {
+  const g = st.routeGrade;
+  $("v-grade").textContent = `Grade: ${GRADE_NAMES[g] || "V" + g}`;
+  $("v-grade").style.color = GRADE_COLORS[g] || "#ecc94b";
+  generateRoute();
+}
+function generateRoute() {
+  st.route = generateBoulderRoute(st.routeGrade, st.routeAngle, st.routeCount, st.routeSeed);
+  st.selRoute = 0;
+  redrawWall(); updateRouteInfo();
+}
+function wallGeom(w, h) {
+  const ww = 240, wh = 360, margin = 12;
+  const scale = Math.min((w - 2 * margin) / ww, (h - 2 * margin) / wh);
+  return { scale, ox: (w - ww * scale) / 2, oy: (h + wh * scale) / 2, ww, wh };
+}
+function redrawWall() {
+  const cv = $("wall");
+  if (!cv.offsetParent) return;
+  const [c, w, h] = sizeCanvas(cv, 200);
+  c.clearRect(0, 0, w, h);
+  const { scale, ox, oy, ww, wh } = wallGeom(w, h);
+  c.fillStyle = "#151b26"; c.fillRect(ox, oy - wh * scale, ww * scale, wh * scale);
+  c.strokeStyle = "#3d4a5d"; c.lineWidth = 1; c.strokeRect(ox + 0.5, oy - wh * scale + 0.5, ww * scale - 1, wh * scale - 1);
+  c.fillStyle = "#2d3748";
+  for (let gx = 40; gx < ww; gx += 40) for (let gy = 40; gy < wh; gy += 40) {
+    c.beginPath(); c.arc(ox + gx * scale, oy - gy * scale, 1.2, 0, 2 * Math.PI); c.fill();
+  }
+  if (!st.route.length) return;
+  const pts = st.route.map((hd) => [ox + hd.x_cm * scale, oy - hd.y_cm * scale]);
+  c.setLineDash([3, 3]); c.strokeStyle = "#4a5568"; c.lineWidth = 2;
+  for (let i = 0; i < pts.length - 1; i++) { c.beginPath(); c.moveTo(...pts[i]); c.lineTo(...pts[i + 1]); c.stroke(); }
+  c.setLineDash([]);
+  const ff = getComputedStyle(document.body).fontFamily;
+  for (const hd of st.route) {
+    const i = hd.idx, [px, py] = pts[i];
+    const sel = i === st.selRoute, start = i === 0, top = i === st.route.length - 1;
+    const col = start ? "#38a169" : top ? "#e53e3e" : "#ecc94b";
+    const r = sel ? 9 : (start || top) ? 7 : 6;
+    if (sel) { c.beginPath(); c.arc(px, py, r + 4, 0, 2 * Math.PI); c.strokeStyle = "#63b3ed"; c.lineWidth = 2; c.stroke(); }
+    c.beginPath(); c.arc(px, py, r, 0, 2 * Math.PI); c.fillStyle = col; c.fill();
+    c.strokeStyle = "#fff"; c.lineWidth = 1; c.stroke();
+    c.fillStyle = col === "#ecc94b" ? "#000" : "#fff"; c.font = "bold 9px " + ff; c.textAlign = "center"; c.textBaseline = "middle";
+    c.fillText(String(i + 1), px, py + 0.5);
+    c.font = "bold 8px " + ff;
+    if (start) { c.fillStyle = "#48bb78"; c.fillText("START", px, py + 14); }
+    else if (top) { c.fillStyle = "#e53e3e"; c.fillText("TOP", px, py - 14); }
+  }
+}
+function onWallClick(e) {
+  if (!st.route.length) return;
+  const cv = $("wall"), r = cv.getBoundingClientRect();
+  const x = e.clientX - r.left, y = e.clientY - r.top;
+  const { scale, ox, oy } = wallGeom(cv.clientWidth, cv.clientHeight);
+  let best = null, minD = 18;
+  for (const hd of st.route) {
+    const d = Math.hypot(x - (ox + hd.x_cm * scale), y - (oy - hd.y_cm * scale));
+    if (d < minD) { minD = d; best = hd.idx; }
+  }
+  if (best !== null) { st.selRoute = best; redrawWall(); updateRouteInfo(); loadSelectedRouteHold(); }
+}
+function updateRouteInfo() {
+  if (!st.route.length) return;
+  const hd = st.route[st.selRoute];
+  const total = st.route.reduce((s, h) => s + h.reach_cm, 0);
+  const maxReach = st.route.length > 1 ? Math.max(...st.route.slice(1).map((h) => h.reach_cm)) : 0;
+  $("route-info").textContent =
+    `SELECTED: Hold #${hd.idx + 1} (${hd.role})\n` +
+    `Type:     ${hd.type} (${hd.diff} Difficulty)\n` +
+    `Seed:     ${hd.seed}\n` +
+    `Wall Pos: X=${pyStr(hd.x_cm)} cm, Y=${pyStr(hd.y_cm)} cm\n` +
+    `Move:     ${pyStr(hd.reach_cm)} cm span (Tilt: ${signed(hd.rot_deg, 0)}°)\n` +
+    `--------------------------------------\n` +
+    `ROUTE TOTALS: ${st.route.length} Moves | Grade V${st.routeGrade}\n` +
+    `Max Reach:    ${maxReach.toFixed(1)} cm (Crux Move)\n` +
+    `Total Length: ${total.toFixed(1)} cm`;
+}
+function loadSelectedRouteHold() {
+  if (!st.route.length) return;
+  const hd = st.route[st.selRoute];
+  st.seed = String(hd.seed); st.htype = hd.type; st.diff = hd.diff;
+  syncRadios(); regen();
+  setStatus(`Loaded Route Hold #${hd.idx + 1} (${hd.type} - ${hd.diff}) into 3D view.`, "#48bb78");
+}
+async function exportRoutePackage() {
+  if (!st.route.length) return;
+  const g = st.routeGrade, a = st.routeAngle, folder = `Boulder_V${g}_${a}deg_Route`;
+  const zip = new ZipBuilder(), qq = q();
+  setStatus("Packing route STLs...");
+  await nextFrame();
+  for (const hd of st.route) {
+    const [v, t] = generateHold(hd.seed, hd.type, hd.diff, qq);
+    zip.add(`${folder}/Hold_${hd.idx + 1}_${hd.type}_${hd.diff}_${hd.seed}.stl`, stlBytes(v, t, `V${g}_Hold_${hd.idx + 1}`));
+  }
+  download(zip.blob(), folder + ".zip");
+  setStatus(`Route package exported: ${folder}.zip`, C_SUCCESS);
+  showInfo("Route Package Exported", `Successfully generated all ${st.route.length} holds for Grade V${g}!\n\nSaved to:\n${folder}.zip`);
+}
+
+// ---------------------------------------------------------------------------
+// CUSTOM HOLD: prompt, profile editor, parameters, library
+// ---------------------------------------------------------------------------
+const EXAMPLES = [
+  "wide two-hand rail, 30 mm deep, slightly incut lip",
+  "tiny sharp crimp, 8 mm deep",
+  "2 finger pocket, 25mm deep pocket",
+  "huge friendly sloper, smooth",
+  "double lip hold for gastons and underclings",
+  "stepped ridges edge, 160 mm tall",
+  "horn to pinch, 90mm deep",
+];
+function saveWorking() { if (st.custom) LS.set(K_CUSTOM, st.custom); }
+function activateCustom() {
+  if (st.htype !== "Custom") st.htype = "Custom";
+  syncRadios();
+}
+let customRegenQueued = false;
+function customChanged(fast = false) {
+  activateCustom();
+  saveWorking();
+  if (customRegenQueued) return;
+  customRegenQueued = true;
+  requestAnimationFrame(() => { customRegenQueued = false; regen({ fastOnly: fast }); drawEditor(); });
+}
+
+function buildCustomWidgets() {
+  const chips = $("chips");
+  for (const ex of EXAMPLES) {
+    const b = document.createElement("button"); b.className = "chip"; b.textContent = ex; b.type = "button";
+    b.onclick = () => { $("prompt").value = ex; $("prompt").focus(); };
+    chips.appendChild(b);
+  }
+  $("prompt").addEventListener("keydown", (e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) createFromPrompt(); });
+  $("btn-prompt").onclick = createFromPrompt;
+  document.querySelectorAll('input[name="engine"]').forEach((r) => r.addEventListener("change", () => {
+    if (r.value === "ai" && r.checked) $("ai-settings").open = true;
+  }));
+  const savedKey = LS.get(K_KEY);
+  if (savedKey) { $("api-key").value = savedKey; $("api-remember").checked = true; }
+  const savedModel = LS.get(K_MODEL);
+  if (savedModel) $("api-model").value = savedModel;
+  $("api-remember").addEventListener("change", (e) => { if (!e.target.checked) LS.del(K_KEY); });
+
+  const bsel = $("behaves");
+  for (const t of HOLD_TYPES) bsel.add(new Option(t, t));
+  bsel.addEventListener("change", () => {
+    const s = customSpec();
+    if (s.kind === "profile") { s.base = bsel.value; customChanged(); }
+  });
+  const sf = $("start-from");
+  for (const t of HOLD_TYPES.filter((x) => x !== "Pocket")) sf.add(new Option(`${t} profile`, t));
+  for (const [k, T] of Object.entries(SHAPE_TEMPLATES)) sf.add(new Option(T.label.split(" (")[0], "tpl:" + k));
+  $("btn-reset-custom").onclick = () => {
+    const v = sf.value;
+    let spec;
+    if (v.startsWith("tpl:")) {
+      const k = v.slice(4), T = SHAPE_TEMPLATES[k];
+      spec = { kind: "profile", base: T.base, name: T.label.split(" (")[0], summary: T.label, W: T.W, H: T.H, D: T.D, p: T.p,
+               profile: k === "undercling" ? undercling() : T.pts.map((p) => p.slice()), roughness: null };
+    } else {
+      spec = { kind: "profile", base: v, name: `Custom ${v}`, summary: `Free-form ${v} profile you can reshape.`,
+               ...freeformFromBase(v, st.diff), roughness: null };
+    }
+    st.custom = sanitizeSpec(spec); st.selPt = -1;
+    $("understood").innerHTML = "";
+    syncCustomPanel(); customChanged();
+  };
+  $("btn-unlock").onclick = () => {
+    const s = customSpec();
+    if (s.kind !== "tuned" || s.base === "Pocket") return;
+    const ff = freeformFromBase(s.base, st.diff, s.params);
+    st.custom = sanitizeSpec({ ...s, kind: "profile", ...ff });
+    syncCustomPanel(); customChanged();
+    setStatus("Profile unlocked. Drag the points in the editor to reshape it.", C_SUCCESS);
+  };
+  $("btn-delpt").onclick = deleteSelectedPoint;
+  $("corner").addEventListener("input", (e) => {
+    const s = customSpec();
+    if (s.kind !== "profile" || st.selPt <= 0 || st.selPt >= s.profile.length - 1) return;
+    s.profile[st.selPt][2] = Number(e.target.value);
+    $("corner-val").textContent = Number(e.target.value).toFixed(2);
+    customChanged(true);
+  });
+  $("corner").addEventListener("change", () => customChanged(false));
+  $("cust-name").addEventListener("input", (e) => {
+    customSpec().name = e.target.value.replace(/[^\w\s\-+.()#&']/g, "").slice(0, 40) || "Custom Hold";
+    $("custom-name-hint").textContent = `(${customSpec().name})`;
+    saveWorking();
+  });
+  $("cust-name").addEventListener("change", () => customChanged());
+  $("rough").addEventListener("input", (e) => {
+    customSpec().roughness = Number(e.target.value); $("rough-auto").checked = false;
+    $("rough-val").textContent = Number(e.target.value).toFixed(2);
+    customChanged(true);
+  });
+  $("rough").addEventListener("change", () => customChanged());
+  $("rough-auto").addEventListener("change", (e) => {
+    customSpec().roughness = e.target.checked ? null : Number($("rough").value);
+    syncCustomPanel(); customChanged();
+  });
+
+  $("btn-lib-save").onclick = saveToLibrary;
+  $("btn-lib-load").onclick = () => {
+    const lib = LS.get(K_LIB, []), i = Number($("library").value);
+    if (!lib[i]) return;
+    st.custom = sanitizeSpec(lib[i]); st.selPt = -1;
+    syncCustomPanel(); customChanged();
+    setStatus(`Loaded custom hold "${st.custom.name}".`, C_SUCCESS);
+  };
+  $("btn-lib-del").onclick = () => {
+    const lib = LS.get(K_LIB, []), i = Number($("library").value);
+    if (!lib[i]) return;
+    const name = lib[i].name;
+    modal("Delete Custom Hold", `Delete "${name}" from this browser?`, [["Cancel", () => true], ["Delete", () => {
+      lib.splice(i, 1); LS.set(K_LIB, lib); refreshLibrary(); setStatus(`Deleted "${name}".`);
+    }, true]]);
+  };
+  $("btn-spec-export").onclick = () => {
+    const s = customSpec();
+    const data = { format: "holdstudio-custom-hold", version: 1, spec: s, difficulty: st.diff, seed: st.seed };
+    download(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }), `${slug(s.name)}.hold.json`);
+    setStatus(`Exported design: ${slug(s.name)}.hold.json`, C_SUCCESS);
+  };
+  $("btn-spec-import").onclick = () => $("spec-file").click();
+  $("spec-file").addEventListener("change", async (e) => {
+    const f = e.target.files[0]; e.target.value = "";
+    if (!f) return;
+    try {
+      const data = JSON.parse(await f.text());
+      st.custom = sanitizeSpec(data.spec || data); st.selPt = -1;
+      if (DIFFICULTY_LIST.includes(data.difficulty)) st.diff = data.difficulty;
+      if (data.seed != null) st.seed = String(data.seed);
+      syncCustomPanel(); customChanged();
+      setStatus(`Imported custom hold "${st.custom.name}".`, C_SUCCESS);
+    } catch (err) {
+      showInfo("Import Failed", `This file is not a valid hold design.\n${err.message}`);
+    }
+  });
+  refreshLibrary();
+  setupEditor();
+}
+
+function refreshLibrary() {
+  const lib = LS.get(K_LIB, []), sel = $("library");
+  sel.innerHTML = "";
+  if (!lib.length) { sel.add(new Option("No saved holds yet", "")); sel.disabled = true; }
+  else { sel.disabled = false; lib.forEach((s, i) => sel.add(new Option(`${s.name} (${s.kind === "tuned" ? s.base : "free-form"})`, i))); }
+  $("btn-lib-load").disabled = $("btn-lib-del").disabled = !lib.length;
+}
+function saveToLibrary() {
+  const s = JSON.parse(JSON.stringify(customSpec()));
+  const lib = LS.get(K_LIB, []);
+  const i = lib.findIndex((x) => x.name === s.name);
+  if (i >= 0) lib[i] = s; else lib.push(s);
+  LS.set(K_LIB, lib);
+  refreshLibrary();
+  $("library").value = String(i >= 0 ? i : lib.length - 1);
+  setStatus(`Saved "${s.name}" to My Custom Holds.`, C_SUCCESS);
+}
+
+function sliderRow(key, value, onInput) {
+  const [lo, hi, step, label, unit] = PARAM_RANGES[key];
+  const div = document.createElement("div"); div.className = "slider-row";
+  const fmt = (v) => (step < 1 ? Number(v).toFixed(step < 0.1 ? 2 : 1) : Math.round(v)) + (unit ? " " + unit : "");
+  div.innerHTML = `<div class="row"><span>${label}</span><span class="val"></span></div><input type="range" min="${lo}" max="${hi}" step="${step}">`;
+  const inp = div.querySelector("input"), val = div.querySelector(".val");
+  inp.value = value; val.textContent = fmt(value);
+  inp.addEventListener("input", () => { val.textContent = fmt(inp.value); onInput(Number(inp.value), true); });
+  inp.addEventListener("change", () => onInput(Number(inp.value), false));
+  return div;
+}
+function syncCustomPanel() {
+  const s = customSpec();
+  $("kind-badge").textContent = s.kind === "tuned" ? `tuned ${s.base}` : "free-form";
+  $("cust-name").value = s.name;
+  const bsel = $("behaves");
+  bsel.value = s.base; bsel.disabled = s.kind === "tuned";
+  $("btn-unlock").disabled = s.kind !== "tuned" || s.base === "Pocket";
+  $("btn-unlock").dataset.tip = s.base === "Pocket" && s.kind === "tuned"
+    ? "Pockets are carved across the width, so they can't be drawn as a side profile. Adjust them with the sliders below."
+    : "Convert this tuned shape into free-form control points you can drag";
+  $("editor-hint").textContent = s.kind === "tuned"
+    ? "This hold uses the tuned generator. Adjust it with the sliders below, or unlock the free-form profile to drag its shape by hand."
+    : "Drag points to reshape the side profile. Double-click a line to add a point. Select a point and press Delete to remove it.";
+
+  const box = $("param-sliders"); box.innerHTML = "";
+  const P = s.kind === "tuned" ? s.params : s;
+  const keys = s.kind === "tuned" ? Object.keys(s.params).filter((k) => k !== "fingers") : ["W", "H", "D", "p"];
+  for (const k of keys) {
+    box.appendChild(sliderRow(k, P[k], (v, live) => {
+      P[k] = v;
+      if (s.kind === "tuned" && s.base === "Pocket" && (k === "D" || k === "d")) { if (P.d > P.D - 10) P.d = Math.max(5, P.D - 10); }
+      customChanged(live);
+    }));
+  }
+  if (s.kind === "tuned" && s.base === "Pocket") {
+    const div = document.createElement("div"); div.className = "slider-row";
+    div.innerHTML = `<div class="row"><span>Finger options (picked per seed)</span></div>
+      <div class="inline-opts">${[1, 2, 3].map((n) => `<label class="opt"><input type="checkbox" value="${n}"${s.params.fingers.includes(n) ? " checked" : ""}> ${n === 1 ? "Mono" : n + "-finger"}</label>`).join("")}</div>`;
+    div.querySelectorAll("input").forEach((cb) => cb.addEventListener("change", () => {
+      const f = [...div.querySelectorAll("input:checked")].map((x) => Number(x.value));
+      if (!f.length) { cb.checked = true; return; }
+      s.params.fingers = f; customChanged();
+    }));
+    box.appendChild(div);
+  }
+  const auto = s.roughness == null;
+  $("rough-auto").checked = auto;
+  const rv = auto ? ROUGH[st.diff] : s.roughness;
+  $("rough").value = rv; $("rough-val").textContent = rv.toFixed(2) + (auto ? " (auto)" : "");
+  syncCornerSlider();
+  drawEditor();
+}
+function syncCornerSlider() {
+  const s = customSpec();
+  const ok = s.kind === "profile" && st.selPt > 0 && st.selPt < s.profile.length - 1;
+  $("corner").disabled = !ok; $("btn-delpt").disabled = !ok || s.profile.length <= 3;
+  if (ok) { $("corner").value = s.profile[st.selPt][2]; $("corner-val").textContent = s.profile[st.selPt][2].toFixed(2); }
+  else $("corner-val").textContent = "--";
+}
+
+// ---- prompt -> spec ---------------------------------------------------------
+async function createFromPrompt() {
+  const text = $("prompt").value.trim();
+  const out = $("understood");
+  const engine = document.querySelector('input[name="engine"]:checked').value;
+  out.className = "understood";
+  if (!text) { out.className = "understood err"; out.innerHTML = "<b>Describe the hold first.</b> Try one of the examples above."; return; }
+  const btn = $("btn-prompt");
+  try {
+    if (engine === "ai") {
+      const key = $("api-key").value.trim(), model = $("api-model").value.trim() || "claude-sonnet-5-5";
+      if (!key) {
+        $("ai-settings").open = true;
+        out.className = "understood err";
+        out.innerHTML = "<b>Add your Anthropic API key</b> in Claude AI settings, or switch to the built-in interpreter.";
+        return;
+      }
+      if ($("api-remember").checked) LS.set(K_KEY, key);
+      LS.set(K_MODEL, model);
+      btn.disabled = true; btn.textContent = "Asking Claude...";
+      setStatus("Asking Claude to design the hold...");
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01",
+                   "anthropic-dangerous-direct-browser-access": "true" },
+        body: JSON.stringify({ model, max_tokens: 1500, system: AI_SYSTEM_PROMPT,
+                               messages: [{ role: "user", content: `Hold description: ${text}\nCurrent difficulty setting: ${st.diff}` }] }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg = (data.error && data.error.message) || res.statusText;
+        if (res.status === 401) throw new Error("The API key was rejected. Check it in Claude AI settings.");
+        if (res.status === 404) throw new Error(`Model "${model}" was not found. Check the model name in Claude AI settings.`);
+        throw new Error(`Claude API error ${res.status}: ${msg}`);
+      }
+      const reply = (data.content || []).filter((b) => b.type === "text").map((b) => b.text).join("\n");
+      st.custom = parseAiJson(reply);
+      out.innerHTML = `<b>Claude designed:</b> ${escapeHtml(st.custom.summary || st.custom.name)} <span class="muted">(${st.custom.kind === "tuned" ? "tuned " + st.custom.base : "free-form profile, " + st.custom.base + " grip"})</span>`;
+    } else {
+      const r = interpretPrompt(text, st.diff);
+      st.custom = r.spec;
+      st.diff = r.difficulty;
+      out.innerHTML = `<b>Understood:</b> ${escapeHtml(r.understood.join("; "))}`;
+    }
+    st.selPt = -1;
+    st.seed = st.seed || "1234";
+    activateCustom(); syncCustomPanel(); regen(); saveWorking();
+    setStatus(`Created custom hold "${st.custom.name}". Fine-tune it below or export it from the Hold Design tab.`, C_SUCCESS);
+  } catch (err) {
+    out.className = "understood err";
+    const net = err instanceof TypeError ? "Could not reach api.anthropic.com. Check your connection, or use the built-in interpreter." : err.message;
+    out.innerHTML = `<b>Could not create the hold.</b> ${escapeHtml(net)}`;
+    setStatus("Custom hold not created.", "#f56565");
+  } finally {
+    btn.disabled = false; btn.textContent = "✨ Create Hold from Prompt";
+  }
+}
+function escapeHtml(s) { return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+
+// ---- profile editor ---------------------------------------------------------
+let edView = null;           // frozen mapping during drag
+function editorMapping(w, h, spec) {
+  const H = spec.H, D = spec.D;
+  let ymax = 0.6;
+  for (const p of spec.profile) ymax = Math.max(ymax, Math.abs(p[0]) + 0.06);
+  const wallX = 46, padR = 18, padV = 16;
+  const sy = (h - 2 * padV) / (2 * ymax * H);
+  const sz = Math.min((w - wallX - padR) / (D * 1.08), sy * 3);   // depth may be exaggerated for easier editing
+  return { wallX, sy, sz, midY: h / 2, H, D, ymax,
+    toPx: ([y, z]) => [wallX + z * D * sz, h / 2 - y * H * sy],
+    fromPx: (px, py) => [(h / 2 - py) / (H * sy), (px - wallX) / (D * sz)] };
+}
+function drawEditor() {
+  const cv = $("editor");
+  if (!cv.offsetParent) return;
+  const [c, w, h] = sizeCanvas(cv, 210);
+  const s = customSpec();
+  c.clearRect(0, 0, w, h);
+  const ff = getComputedStyle(document.body).fontFamily;
+  if (s.kind === "tuned") {
+    const pts = get2dProfileCurve("Custom", st.diff, s);
+    const ys = pts.map((p) => p[0]), zs = pts.map((p) => p[1]);
+    const minY = Math.min(...ys), maxY = Math.max(...ys), maxZ = Math.max(...zs);
+    const wallX = 46;
+    const sc = Math.min((w - wallX - 24) / Math.max(1, maxZ), (h - 34) / Math.max(1, maxY - minY));
+    drawWall(c, wallX, h, ff);
+    c.beginPath();
+    pts.forEach(([y, z], i) => { const px = wallX + z * sc, py = h / 2 - (y - (maxY + minY) / 2) * sc; i ? c.lineTo(px, py) : c.moveTo(px, py); });
+    c.closePath(); c.fillStyle = "rgba(43,108,176,.55)"; c.fill(); c.strokeStyle = "#63b3ed"; c.lineWidth = 2; c.stroke();
+    c.fillStyle = C_MUTED; c.font = "10px " + ff; c.textAlign = "right"; c.textBaseline = "bottom";
+    c.fillText(`Tuned ${s.base}: use the sliders below`, w - 8, h - 6);
+    return;
+  }
+  const m = edView || editorMapping(w, h, s);
+  drawWall(c, m.wallX, h, ff);
+  // depth guide
+  c.setLineDash([2, 4]); c.strokeStyle = "#3d4a5d"; c.lineWidth = 1;
+  const dx = m.wallX + m.D * m.sz;
+  c.beginPath(); c.moveTo(dx, 14); c.lineTo(dx, h - 14); c.stroke(); c.setLineDash([]);
+  c.fillStyle = "#718096"; c.font = "9px " + ff; c.textAlign = "center"; c.textBaseline = "bottom";
+  c.fillText(`D ${Math.round(s.D)} mm`, Math.min(dx, w - 24), h - 2);
+  if (m.sz / m.sy > 1.15) { c.textAlign = "right"; c.textBaseline = "top"; c.fillText(`depth shown x${(m.sz / m.sy).toFixed(1)}`, w - 6, 4); }
+  // rounded result
+  const curve = roundPoly(s.profile.map(([y, z, r]) => [y * s.H, z * s.D, r * s.D]), 6);
+  c.beginPath();
+  curve.forEach(([y, z], i) => { const px = m.wallX + z * m.sz, py = m.midY - y * m.sy; i ? c.lineTo(px, py) : c.moveTo(px, py); });
+  c.closePath(); c.fillStyle = "rgba(43,108,176,.55)"; c.fill(); c.strokeStyle = "#63b3ed"; c.lineWidth = 2; c.stroke();
+  // control polygon
+  c.setLineDash([4, 3]); c.strokeStyle = "#a0aec0"; c.lineWidth = 1;
+  c.beginPath(); s.profile.forEach((p, i) => { const [px, py] = m.toPx(p); i ? c.lineTo(px, py) : c.moveTo(px, py); }); c.stroke();
+  c.setLineDash([]);
+  s.profile.forEach((p, i) => {
+    const [px, py] = m.toPx(p);
+    const end = i === 0 || i === s.profile.length - 1, sel = i === st.selPt;
+    c.beginPath();
+    if (end) c.rect(px - 4, py - 4, 8, 8); else c.arc(px, py, sel ? 6 : 5, 0, 2 * Math.PI);
+    c.fillStyle = sel ? "#63b3ed" : end ? "#718096" : "#ecc94b"; c.fill();
+    c.strokeStyle = "#fff"; c.lineWidth = sel ? 2 : 1; c.stroke();
+  });
+}
+function drawWall(c, wallX, h, ff) {
+  c.strokeStyle = "#718096"; c.lineWidth = 2;
+  c.beginPath(); c.moveTo(wallX, 8); c.lineTo(wallX, h - 8); c.stroke();
+  c.strokeStyle = "#4a5568"; c.lineWidth = 1;
+  for (let y = 12; y < h - 10; y += 10) { c.beginPath(); c.moveTo(wallX, y); c.lineTo(wallX - 8, y + 8); c.stroke(); }
+  c.fillStyle = C_MUTED; c.font = "9px " + ff; c.textAlign = "center"; c.textBaseline = "middle";
+  c.fillText("Wall", wallX - 20, h / 2 - 6); c.fillText("Z=0", wallX - 20, h / 2 + 6);
+  c.fillStyle = "#718096"; c.textAlign = "left"; c.textBaseline = "top"; c.fillText("+Y (Up Wall)", wallX + 8, 4);
+}
+function setupEditor() {
+  const cv = $("editor");
+  let dragIdx = -1;
+  const pos = (e) => { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+  const hit = (x, y, m, s) => {
+    let best = -1, bd = 11;
+    s.profile.forEach((p, i) => { const [px, py] = m.toPx(p); const d = Math.hypot(px - x, py - y); if (d < bd) { bd = d; best = i; } });
+    return best;
+  };
+  cv.addEventListener("pointerdown", (e) => {
+    const s = customSpec();
+    if (s.kind !== "profile") return;
+    const [x, y] = pos(e);
+    const m = editorMapping(cv.clientWidth, cv.clientHeight, s);
+    const i = hit(x, y, m, s);
+    st.selPt = i;
+    syncCornerSlider();
+    if (i >= 0) { dragIdx = i; edView = m; cv.setPointerCapture(e.pointerId); }
+    drawEditor();
+  });
+  cv.addEventListener("pointermove", (e) => {
+    if (dragIdx < 0) { // hover cursor
+      const s = customSpec();
+      if (s.kind === "profile") {
+        const [x, y] = pos(e);
+        cv.style.cursor = hit(x, y, editorMapping(cv.clientWidth, cv.clientHeight, s), s) >= 0 ? "grab" : "crosshair";
+      } else cv.style.cursor = "default";
+      return;
+    }
+    const s = customSpec(), m = edView;
+    const [x, y] = pos(e);
+    let [ny, nz] = m.fromPx(x, y);
+    ny = clamp(ny, -Math.min(0.8, m.ymax), Math.min(0.8, m.ymax));
+    const end = dragIdx === 0 || dragIdx === s.profile.length - 1;
+    nz = end ? 0 : clamp(nz, 0.03, 1.0);
+    s.profile[dragIdx][0] = round2(ny, 3); s.profile[dragIdx][1] = round2(nz, 3);
+    cv.style.cursor = "grabbing";
+    customChanged(true);
+  });
+  const end = () => {
+    if (dragIdx >= 0) {
+      dragIdx = -1; edView = null;
+      const s = customSpec();
+      if (s.profile[0][0] > s.profile[s.profile.length - 1][0]) { s.profile.reverse(); st.selPt = s.profile.length - 1 - st.selPt; }
+      customChanged(false);
+    }
+  };
+  cv.addEventListener("pointerup", end);
+  cv.addEventListener("pointercancel", end);
+  cv.addEventListener("dblclick", (e) => {
+    const s = customSpec();
+    if (s.kind !== "profile" || s.profile.length >= 32) return;
+    const [x, y] = pos(e);
+    const m = editorMapping(cv.clientWidth, cv.clientHeight, s);
+    if (hit(x, y, m, s) >= 0) return;
+    let best = -1, bd = Infinity, bt = 0;
+    for (let i = 0; i < s.profile.length - 1; i++) {
+      const [ax, ay] = m.toPx(s.profile[i]), [bx, by] = m.toPx(s.profile[i + 1]);
+      const vx = bx - ax, vy = by - ay, L2 = vx * vx + vy * vy || 1;
+      const t = clamp(((x - ax) * vx + (y - ay) * vy) / L2);
+      const d = Math.hypot(ax + t * vx - x, ay + t * vy - y);
+      if (d < bd) { bd = d; best = i; bt = t; }
+    }
+    if (best < 0 || bd > 30) return;
+    const [ny, nz] = m.fromPx(x, y);
+    s.profile.splice(best + 1, 0, [round2(ny, 3), round2(clamp(nz, 0.03, 1), 3), 0.1]);
+    st.selPt = best + 1;
+    syncCornerSlider(); customChanged();
+  });
+  cv.addEventListener("keydown", (e) => {
+    if (e.key === "Delete" || e.key === "Backspace") { e.preventDefault(); deleteSelectedPoint(); }
+  });
+}
+function deleteSelectedPoint() {
+  const s = customSpec();
+  if (s.kind !== "profile" || st.selPt <= 0 || st.selPt >= s.profile.length - 1 || s.profile.length <= 3) return;
+  s.profile.splice(st.selPt, 1);
+  if (Math.max(...s.profile.map((p) => p[1])) < 0.999) {
+    const zmax = Math.max(...s.profile.map((p) => p[1]));
+    s.profile = s.profile.map(([y, z, r]) => [y, round2(z / zmax, 3), r]);
+  }
+  st.selPt = -1; syncCornerSlider(); customChanged();
+}
+
+// ---------------------------------------------------------------------------
+// Boot
+// ---------------------------------------------------------------------------
+function boot() {
+  const saved = LS.get(K_CUSTOM);
+  if (saved) { try { st.custom = sanitizeSpec(saved); } catch (e) { st.custom = null; } }
+  buildWidgets();
+  buildCustomWidgets();
+  syncRadios(); syncToolbar(); updateResLabel();
+  onRouteGradeChange();
+  regen();
+  syncCustomPanel();
+  const ro = new ResizeObserver(() => { redraw(); redrawProfile(); redrawWall(); drawEditor(); });
+  ro.observe($("view")); ro.observe($("tab-design")); ro.observe($("tab-custom")); ro.observe($("tab-route"));
+  setTimeout(() => { redrawProfile(); redraw(); }, 40);
+}
+boot();
+
+</script>
+</body>
+</html>
